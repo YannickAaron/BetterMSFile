@@ -4,7 +4,7 @@ A lightweight native macOS app for fast, unified access to Microsoft 365 files a
 
 ## Download
 
-[**Download BetterMSFile v1.1**](https://github.com/YannickAaron/BetterMSFile/releases/latest) — Signed and notarized `.dmg` for macOS. Open the DMG and drag BetterMSFile to Applications.
+[**Download BetterMSFile v1.2**](https://github.com/YannickAaron/BetterMSFile/releases/latest) — Signed and notarized `.dmg` for macOS. Open the DMG and drag BetterMSFile to Applications.
 
 ## Why
 
