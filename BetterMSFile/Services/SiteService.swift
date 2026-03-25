@@ -21,6 +21,7 @@ struct SharePointDrive: Identifiable, Hashable {
     let name: String
     let siteId: String
     let siteName: String
+    let webUrl: String  // Direct URL to document library root (e.g. .../Shared Documents)
 }
 
 final class SiteService {
@@ -68,7 +69,7 @@ final class SiteService {
                     let drives: [GraphDrive] = try await client.getAllPages(GraphEndpoints.siteDrives(siteId: site.id))
                     let spDrives = drives
                         .filter { $0.driveType == "documentLibrary" }
-                        .map { SharePointDrive(id: $0.id, name: $0.name ?? "Documents", siteId: site.id, siteName: teamName) }
+                        .map { SharePointDrive(id: $0.id, name: $0.name ?? "Documents", siteId: site.id, siteName: teamName, webUrl: $0.webUrl ?? "") }
 
                     if !spDrives.isEmpty {
                         sites.append(SharePointSite(id: site.id, displayName: teamName, drives: spDrives, groupId: team.id))
@@ -137,7 +138,7 @@ final class SiteService {
                 )
                 let spDrives = drives
                     .filter { $0.driveType == "documentLibrary" }
-                    .map { SharePointDrive(id: $0.id, name: $0.name ?? "Documents", siteId: site.id, siteName: siteName) }
+                    .map { SharePointDrive(id: $0.id, name: $0.name ?? "Documents", siteId: site.id, siteName: siteName, webUrl: $0.webUrl ?? "") }
 
                 if !spDrives.isEmpty {
                     result.append(SharePointSite(id: site.id, displayName: siteName, drives: spDrives, groupId: nil))

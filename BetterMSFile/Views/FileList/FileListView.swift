@@ -123,11 +123,20 @@ struct FileListView: View {
                 Task { await viewModel.navigateIntoFolder(file) }
             }
         } else {
+            // Open in native app if applicable
+            if let msIcon = MSAppIcon.forFile(mimeType: file.mimeType, fileName: file.name),
+               MSAppIcon.isNativeAppAvailable(for: file) {
+                Button("Open in \(msIcon.appName)") {
+                    MSAppIcon.openInNativeApp(file: file)
+                }
+            }
+
             Button("Open in Browser") {
                 openInBrowser(file)
             }
-            .keyboardShortcut("o", modifiers: .command)
         }
+
+        Divider()
 
         Button("Copy Link") {
             copyLink(file)

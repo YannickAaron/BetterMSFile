@@ -18,6 +18,7 @@ final class UnifiedFile {
     var source: FileSource
     var siteId: String?
     var thumbnailURL: String?
+    var driveWebURL: String?  // Direct URL to the drive's document library root
     var lastCachedAt: Date
 
     init(
@@ -34,7 +35,8 @@ final class UnifiedFile {
         parentPath: String = "",
         source: FileSource = .oneDrive,
         siteId: String? = nil,
-        thumbnailURL: String? = nil
+        thumbnailURL: String? = nil,
+        driveWebURL: String? = nil
     ) {
         self.uniqueId = "\(driveId)_\(itemId)"
         self.itemId = itemId
@@ -51,6 +53,7 @@ final class UnifiedFile {
         self.source = source
         self.siteId = siteId
         self.thumbnailURL = thumbnailURL
+        self.driveWebURL = driveWebURL
         self.lastCachedAt = .now
     }
 }

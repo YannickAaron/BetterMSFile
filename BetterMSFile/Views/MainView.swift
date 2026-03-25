@@ -101,8 +101,10 @@ struct MainView: View {
         }
         .task {
             fileListVM.setModelContext(modelContext)
-            await sidebarVM.loadSites()
             await loadContent(for: .myFiles)
+        }
+        .task {
+            await sidebarVM.loadSites()
         }
         .onChange(of: selectedItem) { _, newValue in
             if let item = newValue {
@@ -183,8 +185,13 @@ struct MainView: View {
     private var sidebar: some View {
         List(selection: $selectedItem) {
             Section("Locations") {
-                Label("OneDrive", systemImage: "externaldrive")
-                    .tag(SidebarItem.myFiles)
+                Label {
+                    Text("OneDrive")
+                } icon: {
+                    MSAppIcon.oneDrive.icon(size: 16)
+                }
+                .tag(SidebarItem.myFiles)
+
                 Label("Recent", systemImage: "clock")
                     .tag(SidebarItem.recent)
                 Label("Shared with Me", systemImage: "person.2")
@@ -201,8 +208,12 @@ struct MainView: View {
                         .font(.caption)
                 } else {
                     ForEach(sidebarVM.sites) { site in
-                        Label(site.displayName, systemImage: "building.2")
-                            .tag(SidebarItem.sharePointSite(site))
+                        Label {
+                            Text(site.displayName)
+                        } icon: {
+                            MSAppIcon.teams.icon(size: 16)
+                        }
+                        .tag(SidebarItem.sharePointSite(site))
                     }
                 }
             }
@@ -259,7 +270,7 @@ struct MainView: View {
                 }
             } else if site.drives.count == 1, let drive = site.drives.first {
                 let source = FileSource.sharePoint(siteName: drive.siteName, siteId: drive.siteId)
-                await fileListVM.loadDriveRoot(driveId: drive.id, source: source)
+                await fileListVM.loadDriveRoot(driveId: drive.id, source: source, driveWebURL: drive.webUrl)
             } else {
                 await fileListVM.loadSiteDrives(site: site)
             }

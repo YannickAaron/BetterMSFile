@@ -9,20 +9,27 @@ enum GraphEndpoints {
 
     // MARK: - OneDrive
 
-    static var myDriveRoot: URL { url("/me/drive/root/children") }
+    /// Standard fields for drive item queries — ensures parentReference.path is always populated
+    private static let driveItemSelect: [URLQueryItem] = [
+        URLQueryItem(name: "$select", value: "id,name,size,webUrl,file,folder,parentReference,lastModifiedBy,lastModifiedDateTime,createdDateTime"),
+        URLQueryItem(name: "$expand", value: "thumbnails")
+    ]
+
+    static var myDrive: URL { url("/me/drive") }
+    static var myDriveRoot: URL { url("/me/drive/root/children", queryItems: driveItemSelect) }
     static var sharedWithMe: URL { url("/me/drive/sharedWithMe") }
     static var recentFiles: URL { url("/me/drive/recent") }
 
     static func driveItemChildren(driveId: String, itemId: String) -> URL {
-        url("/drives/\(driveId)/items/\(itemId)/children")
+        url("/drives/\(driveId)/items/\(itemId)/children", queryItems: driveItemSelect)
     }
 
     static func driveRootChildren(driveId: String) -> URL {
-        url("/drives/\(driveId)/root/children")
+        url("/drives/\(driveId)/root/children", queryItems: driveItemSelect)
     }
 
     static func driveItem(driveId: String, itemId: String) -> URL {
-        url("/drives/\(driveId)/items/\(itemId)")
+        url("/drives/\(driveId)/items/\(itemId)", queryItems: driveItemSelect)
     }
 
     static func driveItemContent(driveId: String, itemId: String) -> URL {

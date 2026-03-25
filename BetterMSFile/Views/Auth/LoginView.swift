@@ -5,9 +5,7 @@ struct LoginView: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            Image(systemName: "externaldrive.connected.to.line.below")
-                .font(.system(size: 56))
-                .foregroundStyle(.secondary)
+            MSAppIcon.oneDrive.icon(size: 64)
 
             Text("BetterMSFile")
                 .font(.largeTitle)
@@ -19,8 +17,13 @@ struct LoginView: View {
             if viewModel.isLoading {
                 ProgressView("Signing in...")
             } else {
-                Button("Sign in with Microsoft") {
+                Button {
                     Task { await viewModel.signIn() }
+                } label: {
+                    HStack(spacing: 8) {
+                        MSAppIcon.microsoft.icon(size: 16)
+                        Text("Sign in with Microsoft")
+                    }
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)

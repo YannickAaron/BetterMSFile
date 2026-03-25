@@ -14,6 +14,9 @@ final class FileListViewModel {
     /// Navigation stack for folder drill-down.
     var breadcrumbs: [BreadcrumbItem] = []
 
+    /// The current drive's webUrl (document library root URL) — used for constructing direct file URLs.
+    var currentDriveWebURL: String?
+
     /// Cache expiry: 15 minutes for file lists.
     private let cacheExpiry: TimeInterval = 15 * 60
 
@@ -46,10 +49,17 @@ final class FileListViewModel {
     // MARK: - Load operations (stale-while-revalidate)
 
     func loadMyDriveRoot() async {
+        // Fetch drive metadata to get webUrl for "Open in App" feature
+        if currentDriveWebURL == nil {
+            if let drive = try? await fileService.fetchMyDrive() {
+                currentDriveWebURL = drive.webUrl
+            }
+        }
         breadcrumbs = [BreadcrumbItem(name: "My Files", driveId: "", itemId: nil, source: .oneDrive)]
+        let driveURL = currentDriveWebURL
         await loadWithCache(
             cacheKey: "onedrive_root",
-            fetch: { try await self.fileService.fetchMyDriveRoot() }
+            fetch: { try await self.fileService.fetchMyDriveRoot(driveWebURL: driveURL) }
         )
     }
 
@@ -69,11 +79,12 @@ final class FileListViewModel {
         )
     }
 
-    func loadDriveRoot(driveId: String, source: FileSource) async {
+    func loadDriveRoot(driveId: String, source: FileSource, driveWebURL: String? = nil) async {
+        self.currentDriveWebURL = driveWebURL
         breadcrumbs = [BreadcrumbItem(name: source.displayName, driveId: driveId, itemId: nil, source: source)]
         await loadWithCache(
             cacheKey: "drive_\(driveId)",
-            fetch: { try await self.fileService.fetchDriveRoot(driveId: driveId, source: source) }
+            fetch: { try await self.fileService.fetchDriveRoot(driveId: driveId, source: source, driveWebURL: driveWebURL) }
         )
     }
 
@@ -111,7 +122,8 @@ final class FileListViewModel {
                 driveId: drive.id,
                 name: drive.name,
                 isFolder: true,
-                source: .sharePoint(siteName: drive.siteName, siteId: drive.siteId)
+                source: .sharePoint(siteName: drive.siteName, siteId: drive.siteId),
+                driveWebURL: drive.webUrl
             )
         }
         sortFiles()
@@ -124,33 +136,32 @@ final class FileListViewModel {
         guard !file.driveId.isEmpty else { return }
 
         let source = file.source
+        let driveURL = file.driveWebURL ?? currentDriveWebURL
+
         // Fetch the item to get its parentReference with the parent folder ID
         do {
             let item = try await fileService.fetchItem(driveId: file.driveId, itemId: file.itemId)
             if let parentId = item.parentReference?.id, !parentId.isEmpty {
-                // Load the parent folder
                 breadcrumbs = [
                     BreadcrumbItem(name: source.displayName, driveId: file.driveId, itemId: nil, source: source),
                     BreadcrumbItem(name: "...", driveId: file.driveId, itemId: parentId, source: source)
                 ]
                 await loadWithCache(
                     cacheKey: "folder_\(file.driveId)_\(parentId)",
-                    fetch: { try await self.fileService.fetchFolderContents(driveId: file.driveId, itemId: parentId, source: source) }
+                    fetch: { try await self.fileService.fetchFolderContents(driveId: file.driveId, itemId: parentId, source: source, driveWebURL: driveURL) }
                 )
             } else {
-                // File is at drive root
                 breadcrumbs = [BreadcrumbItem(name: source.displayName, driveId: file.driveId, itemId: nil, source: source)]
                 await loadWithCache(
                     cacheKey: "drive_\(file.driveId)",
-                    fetch: { try await self.fileService.fetchDriveRoot(driveId: file.driveId, source: source) }
+                    fetch: { try await self.fileService.fetchDriveRoot(driveId: file.driveId, source: source, driveWebURL: driveURL) }
                 )
             }
         } catch {
-            // Fallback: load the drive root
             breadcrumbs = [BreadcrumbItem(name: source.displayName, driveId: file.driveId, itemId: nil, source: source)]
             await loadWithCache(
                 cacheKey: "drive_\(file.driveId)",
-                fetch: { try await self.fileService.fetchDriveRoot(driveId: file.driveId, source: source) }
+                fetch: { try await self.fileService.fetchDriveRoot(driveId: file.driveId, source: source, driveWebURL: driveURL) }
             )
         }
     }
@@ -159,6 +170,8 @@ final class FileListViewModel {
         guard file.isFolder else { return }
 
         let source = file.source
+        // Propagate driveWebURL from the file or current context
+        let driveURL = file.driveWebURL ?? currentDriveWebURL
 
         // Synthetic drive folders (from loadSiteDrives) have driveId == itemId.
         // Navigate into them as drive roots, not regular folders.
@@ -166,13 +179,13 @@ final class FileListViewModel {
             breadcrumbs.append(BreadcrumbItem(name: file.name, driveId: file.driveId, itemId: nil, source: source))
             await loadWithCache(
                 cacheKey: "drive_\(file.driveId)",
-                fetch: { try await self.fileService.fetchDriveRoot(driveId: file.driveId, source: source) }
+                fetch: { try await self.fileService.fetchDriveRoot(driveId: file.driveId, source: source, driveWebURL: driveURL) }
             )
         } else {
             breadcrumbs.append(BreadcrumbItem(name: file.name, driveId: file.driveId, itemId: file.itemId, source: source))
             await loadWithCache(
                 cacheKey: "folder_\(file.driveId)_\(file.itemId)",
-                fetch: { try await self.fileService.fetchFolderContents(driveId: file.driveId, itemId: file.itemId, source: source) }
+                fetch: { try await self.fileService.fetchFolderContents(driveId: file.driveId, itemId: file.itemId, source: source, driveWebURL: driveURL) }
             )
         }
     }
@@ -181,10 +194,11 @@ final class FileListViewModel {
         guard let index = breadcrumbs.firstIndex(of: crumb) else { return }
         breadcrumbs = Array(breadcrumbs.prefix(through: index))
 
+        let driveURL = currentDriveWebURL
         if let itemId = crumb.itemId {
             await loadWithCache(
                 cacheKey: "folder_\(crumb.driveId)_\(itemId)",
-                fetch: { try await self.fileService.fetchFolderContents(driveId: crumb.driveId, itemId: itemId, source: crumb.source) }
+                fetch: { try await self.fileService.fetchFolderContents(driveId: crumb.driveId, itemId: itemId, source: crumb.source, driveWebURL: driveURL) }
             )
         } else {
             switch crumb.source {
@@ -193,7 +207,7 @@ final class FileListViewModel {
             case .shared:
                 await loadSharedWithMe()
             case .sharePoint:
-                await loadDriveRoot(driveId: crumb.driveId, source: crumb.source)
+                await loadDriveRoot(driveId: crumb.driveId, source: crumb.source, driveWebURL: driveURL)
             }
         }
     }

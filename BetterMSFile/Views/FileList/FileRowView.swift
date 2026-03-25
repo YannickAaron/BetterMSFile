@@ -5,10 +5,8 @@ struct FileRowView: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            Image(systemName: iconName)
-                .font(.title2)
-                .foregroundStyle(iconColor)
-                .frame(width: 28)
+            fileIconView
+                .frame(width: 28, height: 28)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(file.name)
@@ -47,15 +45,25 @@ struct FileRowView: View {
         .contentShape(Rectangle())
     }
 
-    private var iconName: String {
-        if file.isFolder { return "folder.fill" }
-        guard let mimeType = file.mimeType else { return "doc" }
+    @ViewBuilder
+    private var fileIconView: some View {
+        if file.isFolder {
+            Image(systemName: "folder.fill")
+                .font(.title2)
+                .foregroundStyle(.blue)
+        } else if let msIcon = MSAppIcon.forFile(mimeType: file.mimeType, fileName: file.name) {
+            msIcon.icon(size: 24)
+        } else {
+            Image(systemName: genericIconName)
+                .font(.title2)
+                .foregroundStyle(genericIconColor)
+        }
+    }
 
+    private var genericIconName: String {
+        guard let mimeType = file.mimeType else { return "doc" }
         return switch mimeType {
         case let m where m.contains("pdf"): "doc.richtext"
-        case let m where m.contains("word") || m.contains("document"): "doc.text"
-        case let m where m.contains("spreadsheet") || m.contains("excel"): "tablecells"
-        case let m where m.contains("presentation") || m.contains("powerpoint"): "rectangle.stack"
         case let m where m.contains("image"): "photo"
         case let m where m.contains("video"): "film"
         case let m where m.contains("audio"): "music.note"
@@ -65,15 +73,10 @@ struct FileRowView: View {
         }
     }
 
-    private var iconColor: Color {
-        if file.isFolder { return .blue }
+    private var genericIconColor: Color {
         guard let mimeType = file.mimeType else { return .secondary }
-
         return switch mimeType {
         case let m where m.contains("pdf"): .red
-        case let m where m.contains("word") || m.contains("document"): .blue
-        case let m where m.contains("spreadsheet") || m.contains("excel"): .green
-        case let m where m.contains("presentation") || m.contains("powerpoint"): .orange
         case let m where m.contains("image"): .purple
         default: .secondary
         }

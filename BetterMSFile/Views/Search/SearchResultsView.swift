@@ -67,7 +67,9 @@ struct SearchResultsView: View {
                     } primaryAction: { ids in
                         if let id = ids.first,
                            let file = viewModel.results.first(where: { $0.uniqueId == id }) {
-                            openInBrowser(file)
+                            if let url = URL(string: file.webURL) {
+                                NSWorkspace.shared.open(url)
+                            }
                         }
                     }
 
@@ -151,8 +153,17 @@ struct SearchResultsView: View {
 
     @ViewBuilder
     private func contextMenuItems(for file: UnifiedFile) -> some View {
+        if let msIcon = MSAppIcon.forFile(mimeType: file.mimeType, fileName: file.name),
+           MSAppIcon.isNativeAppAvailable(for: file) {
+            Button("Open in \(msIcon.appName)") {
+                MSAppIcon.openInNativeApp(file: file)
+            }
+        }
+
         Button("Open in Browser") {
-            openInBrowser(file)
+            if let url = URL(string: file.webURL) {
+                NSWorkspace.shared.open(url)
+            }
         }
 
         Button("Show in Folder") {
@@ -165,12 +176,6 @@ struct SearchResultsView: View {
             let pasteboard = NSPasteboard.general
             pasteboard.clearContents()
             pasteboard.setString(file.webURL, forType: .string)
-        }
-    }
-
-    private func openInBrowser(_ file: UnifiedFile) {
-        if let url = URL(string: file.webURL) {
-            NSWorkspace.shared.open(url)
         }
     }
 }
