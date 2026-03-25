@@ -7,40 +7,50 @@ final class SearchService {
         self.client = client
     }
 
-    func search(query: String, filters: SearchFilters = SearchFilters()) async throws -> [UnifiedFile] {
-        let request = buildSearchRequest(query: query, filters: filters)
+    struct SearchResult {
+        let files: [UnifiedFile]
+        let moreAvailable: Bool
+        let total: Int?
+    }
+
+    func search(query: String, filters: SearchFilters = SearchFilters(), from: Int = 0) async throws -> SearchResult {
+        let request = buildSearchRequest(query: query, filters: filters, from: from)
         let response: SearchResponse = try await client.post(GraphEndpoints.search, body: request)
 
-        var results: [UnifiedFile] = []
+        var files: [UnifiedFile] = []
+        var moreAvailable = false
+        var total: Int?
+
         for resultSet in response.value {
-            for hit in resultSet.hitsContainers ?? [] {
-                for item in hit.hits ?? [] {
+            for container in resultSet.hitsContainers ?? [] {
+                for item in container.hits ?? [] {
                     if let file = item.toUnifiedFile() {
-                        results.append(file)
+                        files.append(file)
                     }
+                }
+                if container.moreResultsAvailable == true {
+                    moreAvailable = true
+                }
+                if let containerTotal = container.total {
+                    total = containerTotal
                 }
             }
         }
-        return results
+        return SearchResult(files: files, moreAvailable: moreAvailable, total: total)
     }
 
-    private func buildSearchRequest(query: String, filters: SearchFilters) -> SearchRequest {
-        var queryString = query
+    private func buildSearchRequest(query: String, filters: SearchFilters, from: Int = 0) -> SearchRequest {
+        // Escape special characters that could break KQL syntax
+        var queryString = escapeKQL(query)
 
         // Add file type filter
         if let fileType = filters.fileType {
-            queryString += " filetype:\(fileType)"
+            queryString += " filetype:\(escapeKQL(fileType))"
         }
 
         // Add author filter
         if let author = filters.author {
-            queryString += " author:\"\(author)\""
-        }
-
-        var queryFilter: String?
-        if let modifiedAfter = filters.modifiedAfter {
-            let formatter = ISO8601DateFormatter()
-            queryFilter = "lastModifiedDateTime >= '\(formatter.string(from: modifiedAfter))'"
+            queryString += " author:\"\(escapeKQL(author))\""
         }
 
         return SearchRequest(
@@ -48,13 +58,19 @@ final class SearchService {
                 SearchRequestItem(
                     entityTypes: ["driveItem"],
                     query: SearchQueryString(queryString: queryString),
-                    from: 0,
-                    size: 50,
+                    from: from,
+                    size: 25,
                     queryAlterationOptions: nil,
                     fields: nil
                 )
             ]
         )
+    }
+
+    /// Escape characters that have special meaning in KQL (Keyword Query Language).
+    private func escapeKQL(_ term: String) -> String {
+        term.replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "'", with: "\\'")
     }
 }
 

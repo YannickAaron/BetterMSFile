@@ -2,7 +2,12 @@ import Foundation
 
 final class GraphClient {
     private let authService: AuthService
-    private let session = URLSession.shared
+    private let session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 60
+        return URLSession(configuration: config)
+    }()
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
         d.dateDecodingStrategy = .iso8601
@@ -30,16 +35,14 @@ final class GraphClient {
     func getAllPages<T: Codable>(_ url: URL) async throws -> [T] {
         var allItems: [T] = []
         var nextURL: URL? = url
+        var pageCount = 0
+        let maxPages = 100
 
-        while let currentURL = nextURL {
+        while let currentURL = nextURL, pageCount < maxPages {
+            pageCount += 1
             let collection: GraphCollection<T> = try await get(currentURL)
             allItems.append(contentsOf: collection.value)
-
-            if let nextLink = collection.nextLink {
-                nextURL = URL(string: nextLink)
-            } else {
-                nextURL = nil
-            }
+            nextURL = collection.nextLink.flatMap { URL(string: $0) }
         }
 
         return allItems
@@ -78,24 +81,44 @@ final class GraphClient {
         switch httpResponse.statusCode {
         case 200...299:
             return data
+
+        case 401:
+            // Token expired — silently refresh and retry once
+            if retryCount < 1 {
+                print("GraphClient: 401 — refreshing token and retrying")
+                let freshRequest = try await authenticatedRequest(url: request.url!)
+                return try await performRequest(request: freshRequest, retryCount: retryCount + 1)
+            }
+            throw GraphError.unauthorized
+
         case 429:
-            // Throttled — respect Retry-After header
+            // Throttled — respect Retry-After header with exponential backoff
             let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After")
                 .flatMap(Double.init) ?? pow(2.0, Double(retryCount))
-            let delay = min(retryAfter, 60) // Cap at 60 seconds
+            let delay = min(retryAfter, 60)
 
             if retryCount < 3 {
+                print("GraphClient: 429 — throttled, retrying after \(delay)s")
                 try await Task.sleep(for: .seconds(delay))
                 return try await performRequest(request: request, retryCount: retryCount + 1)
-            } else {
-                throw GraphError.throttled
             }
-        case 401:
-            throw GraphError.unauthorized
+            throw GraphError.throttled
+
+        case 502, 503, 504:
+            // Server error / timeout — retry once after short delay
+            if retryCount < 1 {
+                print("GraphClient: \(httpResponse.statusCode) — server error, retrying after 2s")
+                try await Task.sleep(for: .seconds(2))
+                return try await performRequest(request: request, retryCount: retryCount + 1)
+            }
+            throw GraphError.serverError(httpResponse.statusCode)
+
         case 404:
             throw GraphError.notFound
+
         default:
             let message = String(data: data, encoding: .utf8) ?? "Unknown error"
+            print("GraphClient: HTTP \(httpResponse.statusCode) — \(request.url?.path ?? "unknown") — \(message)")
             throw GraphError.httpError(statusCode: httpResponse.statusCode, message: message)
         }
     }
@@ -113,15 +136,18 @@ enum GraphError: LocalizedError {
     case throttled
     case unauthorized
     case notFound
+    case serverError(Int)
     case httpError(statusCode: Int, message: String)
 
     var errorDescription: String? {
         switch self {
-        case .invalidResponse: "Invalid response from Microsoft Graph"
+        case .invalidResponse: "Invalid response from Microsoft Graph."
         case .throttled: "Too many requests. Please wait and try again."
-        case .unauthorized: "Authentication expired. Please sign in again."
+        case .unauthorized: "Session expired. Please sign in again."
         case .notFound: "Resource not found."
-        case .httpError(let code, let message): "HTTP \(code): \(message)"
+        case .serverError(504): "Search timed out — try a more specific query."
+        case .serverError(let code): "Microsoft servers temporarily unavailable (\(code))."
+        case .httpError(let code, _): "Request failed (\(code)). Please try again."
         }
     }
 }

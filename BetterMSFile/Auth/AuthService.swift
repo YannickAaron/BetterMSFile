@@ -96,6 +96,7 @@ final class AuthService {
     }
 
     /// Acquire a fresh access token. Call before each Graph API request.
+    /// MSAL handles token caching and refresh automatically.
     func getAccessToken() async throws -> String {
         guard let account = currentAccount else {
             throw AuthError.notSignedIn
@@ -106,12 +107,20 @@ final class AuthService {
             self.accessToken = result.accessToken
             return result.accessToken
         } catch {
-            // If silent fails (e.g., refresh token expired), sign in interactively
-            try await signIn()
-            guard let token = accessToken else {
-                throw AuthError.tokenAcquisitionFailed
+            // Silent token refresh failed (e.g., refresh token expired)
+            // Try interactive sign-in as last resort
+            do {
+                try await signIn()
+                guard let token = accessToken else {
+                    throw AuthError.tokenAcquisitionFailed
+                }
+                return token
+            } catch {
+                // Interactive login also failed — clear auth state
+                self.isAuthenticated = false
+                self.accessToken = nil
+                throw error
             }
-            return token
         }
     }
 

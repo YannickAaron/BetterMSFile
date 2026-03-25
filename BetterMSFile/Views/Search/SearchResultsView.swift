@@ -15,7 +15,7 @@ struct SearchResultsView: View {
             Divider()
 
             // Results
-            if viewModel.query.isEmpty {
+            if viewModel.query.count < 2 {
                 VStack(spacing: 12) {
                     Image(systemName: "magnifyingglass")
                         .font(.largeTitle)
@@ -42,6 +42,9 @@ struct SearchResultsView: View {
                         .foregroundStyle(.secondary)
                     Text(error)
                         .foregroundStyle(.secondary)
+                    Button("Retry") { viewModel.searchNow() }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.results.isEmpty {
@@ -55,9 +58,36 @@ struct SearchResultsView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ZStack(alignment: .top) {
-                    List(viewModel.results, id: \.uniqueId, selection: $selectedFileId) { file in
-                        FileRowView(file: file)
-                            .tag(file.uniqueId)
+                    List(selection: $selectedFileId) {
+                        ForEach(viewModel.results, id: \.uniqueId) { file in
+                            FileRowView(file: file)
+                                .tag(file.uniqueId)
+                        }
+
+                        // Load More button
+                        if viewModel.hasMoreResults {
+                            HStack {
+                                Spacer()
+                                if viewModel.isLoadingMore {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                    Text("Loading more...")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                } else {
+                                    Button {
+                                        Task { await viewModel.loadMore() }
+                                    } label: {
+                                        Label("Load More Results", systemImage: "arrow.down.circle")
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .controlSize(.small)
+                                }
+                                Spacer()
+                            }
+                            .padding(.vertical, 8)
+                            .listRowSeparator(.hidden)
+                        }
                     }
                     .contextMenu(forSelectionType: String.self) { ids in
                         if let id = ids.first,
@@ -115,6 +145,7 @@ struct SearchResultsView: View {
 
     private var filterBar: some View {
         HStack(spacing: 8) {
+            // File type filter
             Picker("Type", selection: Bindable(viewModel).fileTypeFilter) {
                 Text("Any Type").tag(nil as String?)
                 Divider()
@@ -130,9 +161,18 @@ struct SearchResultsView: View {
                 viewModel.searchNow()
             }
 
+            // Date filter
+            Picker("Date", selection: Bindable(viewModel).dateFilterPreset) {
+                ForEach(DateFilterPreset.allCases, id: \.self) { preset in
+                    Text(preset.rawValue).tag(preset)
+                }
+            }
+            .pickerStyle(.menu)
+            .fixedSize()
+
             Spacer()
 
-            if viewModel.fileTypeFilter != nil {
+            if hasActiveFilters {
                 Button("Clear Filters") {
                     viewModel.clearFilters()
                 }
@@ -141,12 +181,23 @@ struct SearchResultsView: View {
                 .font(.caption)
             }
 
-            Text("\(viewModel.results.count) results")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            // Result count
+            if let total = viewModel.totalResults {
+                Text("\(viewModel.results.count) of \(total)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else if !viewModel.results.isEmpty {
+                Text("\(viewModel.results.count) results")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 4)
+    }
+
+    private var hasActiveFilters: Bool {
+        viewModel.fileTypeFilter != nil || viewModel.dateFilterPreset != .anyTime
     }
 
     // MARK: - Context Menu

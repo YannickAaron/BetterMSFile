@@ -250,8 +250,18 @@ final class FileListViewModel {
         return entry.files
     }
 
+    private let maxCacheEntries = 50
+
     private func saveToCache(files: [UnifiedFile], key: String) {
         memoryCache[key] = (files: files, cachedAt: .now)
+
+        // Evict oldest entries if cache grows too large
+        if memoryCache.count > maxCacheEntries {
+            let sorted = memoryCache.sorted { $0.value.cachedAt < $1.value.cachedAt }
+            for entry in sorted.prefix(memoryCache.count - maxCacheEntries) {
+                memoryCache.removeValue(forKey: entry.key)
+            }
+        }
 
         // Also persist to SwiftData for cross-launch cache
         guard let context = modelContext else { return }
