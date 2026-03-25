@@ -2,6 +2,10 @@
 
 A lightweight native macOS app for fast, unified access to Microsoft 365 files across OneDrive and SharePoint.
 
+## Download
+
+[**Download BetterMSFile v1.1**](https://github.com/YannickAaron/BetterMSFile/releases/latest) — Signed and notarized `.dmg` for macOS. Open the DMG and drag BetterMSFile to Applications.
+
 ## Why
 
 Microsoft's default apps (OneDrive, SharePoint, Teams) scatter files across fragmented interfaces. Finding a file means knowing which app to open and which site to check. BetterMSFile merges everything into a single, fast, keyboard-first file browser.
