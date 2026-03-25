@@ -1,0 +1,26 @@
+# Azure AD credentials
+BetterMSFile/Config.swift
+
+# Xcode user data
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+
+# Build products
+build/
+DerivedData/
+*.app
+*.ipa
+
+# macOS
+.DS_Store
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+
+# IDE
+*.swp
+*.swo
+*~

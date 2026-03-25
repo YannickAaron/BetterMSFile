@@ -1,0 +1,17 @@
+// Copy this file to Config.swift and fill in your Azure AD app registration values.
+// Config.swift is gitignored and will not be committed.
+
+import Foundation
+
+enum MSALConfig {
+    static let clientId = "YOUR_CLIENT_ID"
+    static let tenantId = "YOUR_TENANT_ID"
+    static let redirectUri = "msauth.empa.BetterMSFile://auth"
+    static let authority = "https://login.microsoftonline.com/YOUR_TENANT_ID"
+
+    static let scopes: [String] = [
+        "User.Read",
+        "Files.Read.All",
+        "Sites.Read.All"
+    ]
+}

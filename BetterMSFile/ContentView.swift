@@ -1,24 +1,19 @@
-//
-//  ContentView.swift
-//  BetterMSFile
-//
-//  Created by Yannick Aaron Lehr on 25/3/26.
-//
-
 import SwiftUI
 
 struct ContentView: View {
-    var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
-}
+    let appState: AppState
 
-#Preview {
-    ContentView()
+    var body: some View {
+        Group {
+            if appState.isLoading && !appState.authService.isAuthenticated {
+                ProgressView("Restoring session...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if appState.authService.isAuthenticated {
+                MainView(appState: appState)
+            } else {
+                LoginView(viewModel: AuthViewModel(appState: appState))
+            }
+        }
+        .frame(minWidth: 800, minHeight: 500)
+    }
 }
