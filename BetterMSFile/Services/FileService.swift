@@ -7,38 +7,36 @@ final class FileService {
         self.client = client
     }
 
-    /// Fetch the user's OneDrive drive metadata (includes webUrl for direct file URLs).
+    /// Fetch the user's OneDrive drive metadata.
     func fetchMyDrive() async throws -> GraphDrive {
         try await client.getSingle(GraphEndpoints.myDrive)
     }
 
     /// Fetch children of the user's OneDrive root.
-    func fetchMyDriveRoot(driveWebURL: String? = nil) async throws -> [UnifiedFile] {
+    func fetchMyDriveRoot() async throws -> [UnifiedFile] {
         let items: [GraphDriveItem] = try await client.getAllPages(GraphEndpoints.myDriveRoot)
-        return items.map { $0.toUnifiedFile(source: .oneDrive, driveWebURL: driveWebURL) }
+        return items.map { $0.toUnifiedFile(source: .oneDrive) }
     }
 
     /// Fetch children of a specific folder.
     func fetchFolderContents(driveId: String, itemId: String) async throws -> [UnifiedFile] {
         let url = GraphEndpoints.driveItemChildren(driveId: driveId, itemId: itemId)
         let items: [GraphDriveItem] = try await client.getAllPages(url)
-
-        // Determine source from the driveId context — caller should provide this
         return items.map { $0.toUnifiedFile(source: .oneDrive) }
     }
 
     /// Fetch children of a specific folder with a known source.
-    func fetchFolderContents(driveId: String, itemId: String, source: FileSource, driveWebURL: String? = nil) async throws -> [UnifiedFile] {
+    func fetchFolderContents(driveId: String, itemId: String, source: FileSource) async throws -> [UnifiedFile] {
         let url = GraphEndpoints.driveItemChildren(driveId: driveId, itemId: itemId)
         let items: [GraphDriveItem] = try await client.getAllPages(url)
-        return items.map { $0.toUnifiedFile(source: source, driveWebURL: driveWebURL) }
+        return items.map { $0.toUnifiedFile(source: source) }
     }
 
     /// Fetch root of a specific drive (e.g., SharePoint document library).
-    func fetchDriveRoot(driveId: String, source: FileSource, driveWebURL: String? = nil) async throws -> [UnifiedFile] {
+    func fetchDriveRoot(driveId: String, source: FileSource) async throws -> [UnifiedFile] {
         let url = GraphEndpoints.driveRootChildren(driveId: driveId)
         let items: [GraphDriveItem] = try await client.getAllPages(url)
-        return items.map { $0.toUnifiedFile(source: source, driveWebURL: driveWebURL) }
+        return items.map { $0.toUnifiedFile(source: source) }
     }
 
     /// Fetch files shared with the user.
@@ -67,7 +65,7 @@ final class FileService {
 // MARK: - Mapping
 
 extension GraphDriveItem {
-    func toUnifiedFile(source: FileSource, driveWebURL: String? = nil) -> UnifiedFile {
+    func toUnifiedFile(source: FileSource) -> UnifiedFile {
         let driveId = parentReference?.driveId ?? ""
         let itemId = remoteItem?.id ?? id
 
@@ -86,7 +84,7 @@ extension GraphDriveItem {
             source: source,
             siteId: parentReference?.siteId,
             thumbnailURL: thumbnails?.first?.medium?.url,
-            driveWebURL: driveWebURL
+            webDavURL: webDavUrl ?? remoteItem?.webDavUrl
         )
     }
 

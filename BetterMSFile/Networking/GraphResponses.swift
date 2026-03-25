@@ -19,6 +19,7 @@ struct GraphDriveItem: Codable {
     let name: String
     let size: Int64?
     let webUrl: String?
+    let webDavUrl: String?  // Direct WebDAV URL — the reliable path for opening in Office apps
     let createdDateTime: String?
     let lastModifiedDateTime: String?
     let file: GraphFileInfo?
@@ -60,6 +61,7 @@ struct GraphRemoteItem: Codable {
     let id: String?
     let name: String?
     let webUrl: String?
+    let webDavUrl: String?
     let parentReference: GraphParentReference?
     let file: GraphFileInfo?
     let folder: GraphFolderInfo?

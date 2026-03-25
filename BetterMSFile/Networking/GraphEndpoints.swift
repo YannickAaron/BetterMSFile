@@ -11,7 +11,7 @@ enum GraphEndpoints {
 
     /// Standard fields for drive item queries — ensures parentReference.path is always populated
     private static let driveItemSelect: [URLQueryItem] = [
-        URLQueryItem(name: "$select", value: "id,name,size,webUrl,file,folder,parentReference,lastModifiedBy,lastModifiedDateTime,createdDateTime"),
+        URLQueryItem(name: "$select", value: "id,name,size,webUrl,webDavUrl,file,folder,parentReference,lastModifiedBy,lastModifiedDateTime,createdDateTime"),
         URLQueryItem(name: "$expand", value: "thumbnails")
     ]
 

@@ -270,7 +270,7 @@ struct MainView: View {
                 }
             } else if site.drives.count == 1, let drive = site.drives.first {
                 let source = FileSource.sharePoint(siteName: drive.siteName, siteId: drive.siteId)
-                await fileListVM.loadDriveRoot(driveId: drive.id, source: source, driveWebURL: drive.webUrl)
+                await fileListVM.loadDriveRoot(driveId: drive.id, source: source)
             } else {
                 await fileListVM.loadSiteDrives(site: site)
             }
