@@ -9,6 +9,11 @@ struct FileListView: View {
     @State private var quickLookURL: URL?
     @State private var isDownloading = false
     @State private var dropTargetId: String?
+    @State private var showNewFolderAlert = false
+    @State private var newFolderName = ""
+    @State private var showDeleteConfirmation = false
+    @State private var itemsToDelete: Set<String> = []
+    @State private var deleteError: String?
 
     private var selectedFile: UnifiedFile? {
         guard let id = selectedFileIds.first else { return nil }
@@ -18,7 +23,7 @@ struct FileListView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Breadcrumb bar
-            if viewModel.breadcrumbs.count > 1 || viewModel.hasCustomOrder {
+            if viewModel.breadcrumbs.count > 1 || viewModel.hasCustomOrder || viewModel.canCreateFolder {
                 HStack {
                     if viewModel.breadcrumbs.count > 1 {
                         BreadcrumbBar(
@@ -41,6 +46,18 @@ struct FileListView: View {
                             viewModel.resetSortOrder()
                         } label: {
                             Label("Reset Order", systemImage: "arrow.up.arrow.down")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                        .padding(.trailing, 4)
+                    }
+                    if viewModel.canCreateFolder {
+                        Button {
+                            newFolderName = ""
+                            showNewFolderAlert = true
+                        } label: {
+                            Label("New Folder", systemImage: "folder.badge.plus")
                                 .font(.caption)
                         }
                         .buttonStyle(.plain)
@@ -78,6 +95,14 @@ struct FileListView: View {
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contextMenu {
+                    if viewModel.canCreateFolder {
+                        Button("New Folder") {
+                            newFolderName = ""
+                            showNewFolderAlert = true
+                        }
+                    }
+                }
             } else {
                 ZStack(alignment: .top) {
                     List(viewModel.files, id: \.uniqueId, selection: $selectedFileIds) { file in
@@ -168,6 +193,53 @@ struct FileListView: View {
                 quickLookURL = nil
             }
         }
+        .alert("New Folder", isPresented: $showNewFolderAlert) {
+            TextField("Folder name", text: $newFolderName)
+            Button("Create") {
+                let name = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !name.isEmpty else { return }
+                Task {
+                    do {
+                        try await viewModel.createFolder(name: name)
+                    } catch {
+                        deleteError = error.localizedDescription
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .confirmationDialog(
+            deleteConfirmationTitle,
+            isPresented: $showDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                let ids = itemsToDelete
+                Task {
+                    do {
+                        try await viewModel.deleteItems(ids)
+                        selectedFileIds.subtract(ids)
+                    } catch {
+                        deleteError = error.localizedDescription
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .alert("Error", isPresented: .init(
+            get: { deleteError != nil },
+            set: { if !$0 { deleteError = nil } }
+        )) {
+            Button("OK") { deleteError = nil }
+        } message: {
+            Text(deleteError ?? "")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .createNewFolder)) { _ in
+            if viewModel.canCreateFolder {
+                newFolderName = ""
+                showNewFolderAlert = true
+            }
+        }
     }
 
     // MARK: - Drag-and-Drop Visual Feedback
@@ -207,6 +279,15 @@ struct FileListView: View {
 
     @ViewBuilder
     private func contextMenuItems(for file: UnifiedFile) -> some View {
+        if viewModel.canCreateFolder {
+            Button("New Folder") {
+                newFolderName = ""
+                showNewFolderAlert = true
+            }
+
+            Divider()
+        }
+
         if file.isFolder {
             Button("Open Folder") {
                 Task { await viewModel.navigateIntoFolder(file) }
@@ -249,6 +330,24 @@ struct FileListView: View {
                 favoritesVM.toggleFavorite(for: file)
             }
         }
+
+        Divider()
+
+        Button("Delete", role: .destructive) {
+            // If the right-clicked item is in the multi-selection, delete all selected
+            let ids = selectedFileIds.contains(file.uniqueId) ? selectedFileIds : [file.uniqueId]
+            itemsToDelete = ids
+            showDeleteConfirmation = true
+        }
+    }
+
+    private var deleteConfirmationTitle: String {
+        if itemsToDelete.count == 1,
+           let id = itemsToDelete.first,
+           let file = viewModel.files.first(where: { $0.uniqueId == id }) {
+            return "Delete \"\(file.name)\"?"
+        }
+        return "Delete \(itemsToDelete.count) items?"
     }
 
     private func handleDoubleClick(_ file: UnifiedFile) {

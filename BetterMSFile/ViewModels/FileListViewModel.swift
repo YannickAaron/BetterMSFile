@@ -308,6 +308,43 @@ final class FileListViewModel {
         }
     }
 
+    // MARK: - Create & Delete
+
+    /// Whether the current location supports creating folders.
+    var canCreateFolder: Bool {
+        guard let crumb = breadcrumbs.last else { return false }
+        return !crumb.driveId.isEmpty
+    }
+
+    /// Create a new folder in the current location.
+    func createFolder(name: String) async throws {
+        guard let crumb = breadcrumbs.last, !crumb.driveId.isEmpty else { return }
+
+        let parentId = crumb.itemId ?? "root"
+        let item = try await fileService.createFolder(driveId: crumb.driveId, parentId: parentId, name: name)
+        let newFile = item.toUnifiedFile(source: crumb.source)
+
+        files.append(newFile)
+        sortFiles()
+        invalidateCache(for: currentCacheKey)
+    }
+
+    /// Delete one or more files/folders.
+    func deleteItems(_ ids: Set<String>) async throws {
+        var firstError: Error?
+        for id in ids {
+            guard let file = files.first(where: { $0.uniqueId == id }) else { continue }
+            do {
+                try await fileService.deleteItem(driveId: file.driveId, itemId: file.itemId)
+                files.removeAll { $0.uniqueId == id }
+            } catch {
+                if firstError == nil { firstError = error }
+            }
+        }
+        invalidateCache(for: currentCacheKey)
+        if let firstError { throw firstError }
+    }
+
     // MARK: - Drag-and-Drop
 
     /// Optimistic removal — called before the API move call.

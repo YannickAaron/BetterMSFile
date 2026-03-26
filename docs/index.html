@@ -134,59 +134,103 @@
     line-height: 1.7;
   }
 
-  /* ── FEATURES ── */
+  /* ── FEATURES (Bento Grid) ── */
   .features {
     padding: 0 24px 100px;
     max-width: 1100px;
     margin: 0 auto;
   }
 
-  .features-grid {
+  .features h2 {
+    text-align: center;
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.8px;
+    color: var(--gray-900);
+    margin-bottom: 16px;
+  }
+
+  .features .subtitle {
+    text-align: center;
+    font-size: 18px;
+    color: var(--gray-600);
+    margin-bottom: 48px;
+  }
+
+  .bento-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 28px;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: auto;
+    gap: 20px;
   }
 
-  .feature-card {
+  .bento-item {
     background: white;
-    border-radius: var(--radius);
-    padding: 40px 32px;
+    border-radius: 20px;
+    padding: 36px 32px;
+    position: relative;
+    overflow: hidden;
     border: 1px solid var(--gray-200);
-    transition: transform 0.2s, box-shadow 0.2s;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
   }
 
-  .feature-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(15,23,42,0.08);
+  .bento-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 48px rgba(15,23,42,0.10);
   }
 
-  .feature-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 14px;
+  /* Spanning rules */
+  .bento-wide { grid-column: span 2; }
+
+  /* Color themes — soft pastel tints */
+  .bento-blue { background: linear-gradient(145deg, #eff6ff 0%, #dbeafe 100%); }
+  .bento-indigo { background: linear-gradient(145deg, #eef2ff 0%, #e0e7ff 100%); }
+  .bento-emerald { background: linear-gradient(145deg, #ecfdf5 0%, #d1fae5 100%); }
+  .bento-amber { background: linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%); }
+  .bento-violet { background: linear-gradient(145deg, #f5f3ff 0%, #ede9fe 100%); }
+  .bento-teal { background: linear-gradient(145deg, #f0fdfa 0%, #ccfbf1 100%); }
+  .bento-slate { background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%); }
+  .bento-rose { background: linear-gradient(145deg, #fff1f2 0%, #ffe4e6 100%); }
+
+  .bento-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 20px;
-    font-size: 28px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.04);
   }
 
-  .feature-icon.cloud { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
-  .feature-icon.finder { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); }
-  .feature-icon.edit { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
+  .bento-blue .bento-icon svg { fill: #2563eb; }
+  .bento-indigo .bento-icon svg { fill: #4f46e5; }
+  .bento-emerald .bento-icon svg { fill: #059669; }
+  .bento-amber .bento-icon svg { fill: #d97706; }
+  .bento-violet .bento-icon svg { fill: #7c3aed; }
+  .bento-teal .bento-icon svg { fill: #0d9488; }
+  .bento-slate .bento-icon svg { fill: #475569; }
+  .bento-rose .bento-icon svg { fill: #e11d48; }
 
-  .feature-card h3 {
-    font-size: 22px;
+  .bento-item h3 {
+    font-size: 20px;
     font-weight: 650;
     color: var(--gray-900);
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     letter-spacing: -0.3px;
   }
 
-  .feature-card p {
-    font-size: 16px;
+  .bento-item p {
+    font-size: 15px;
     color: var(--gray-600);
-    line-height: 1.65;
+    line-height: 1.6;
+  }
+
+  .bento-item .bento-accent {
+    color: var(--gray-800);
+    font-weight: 500;
   }
 
   /* ── SCREENSHOTS ── */
@@ -318,17 +362,78 @@
   footer a { color: var(--blue-accent); text-decoration: none; }
   footer a:hover { text-decoration: underline; }
 
+  /* ── SHORTCUTS ── */
+  .shortcuts {
+    padding: 80px 24px 100px;
+    text-align: center;
+  }
+
+  .shortcuts h2 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.8px;
+    color: var(--gray-900);
+    margin-bottom: 16px;
+  }
+
+  .shortcuts .subtitle {
+    font-size: 18px;
+    color: var(--gray-600);
+    margin-bottom: 48px;
+  }
+
+  .shortcuts-grid {
+    max-width: 560px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+
+  .shortcut-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--gray-200);
+    text-align: left;
+  }
+
+  .shortcut-row:nth-last-child(-n+2) { border-bottom: none; }
+
+  .shortcut-row kbd {
+    display: inline-block;
+    min-width: 64px;
+    padding: 6px 12px;
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-800);
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  }
+
+  .shortcut-row span {
+    font-size: 15px;
+    color: var(--gray-600);
+  }
+
   /* ── RESPONSIVE ── */
   @media (max-width: 768px) {
     .hero { padding: 60px 20px 72px; }
     .hero h1 { font-size: 36px; }
     .hero .tagline { font-size: 18px; }
     .hero-icon { width: 100px; height: 100px; }
-    .features-grid { grid-template-columns: 1fr; gap: 20px; }
+    .bento-grid { grid-template-columns: 1fr; gap: 16px; }
+    .bento-wide { grid-column: span 1; }
     .screenshots-grid { grid-template-columns: 1fr; gap: 32px; }
     .problem h2, .screenshots h2, .cta h2 { font-size: 28px; }
     .problem p { font-size: 17px; }
     .download-btn { font-size: 16px; padding: 14px 28px; }
+    .shortcuts-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -414,53 +519,59 @@
 
 <!-- ════════════ FEATURES ════════════ -->
 <section class="features">
-  <div class="features-grid">
-    <div class="feature-card">
-      <div class="feature-icon cloud">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
-      </div>
+  <h2>Built for how you actually work</h2>
+  <p class="subtitle">Every feature designed to save you time navigating Microsoft 365.</p>
+
+  <div class="bento-grid">
+    <!-- Row 1: wide + 2 normal -->
+    <div class="bento-item bento-wide bento-blue">
+      <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM10 17l-3.5-3.5 1.41-1.41L10 14.17l4.59-4.58L16 11l-6 6z"/></svg></div>
       <h3>Always Online</h3>
       <p>Files stream directly from the cloud. No syncing, no conflicts, no waiting for downloads. Your data is always live and up to date.</p>
     </div>
 
-    <div class="feature-card">
-      <div class="feature-icon finder">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-      </div>
+    <div class="bento-item bento-indigo">
+      <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M4 6h16c1.1 0 2-.9 2-2s-.9-2-2-2H4c-1.1 0-2 .9-2 2s.9 2 2 2zm16 2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2zM4 18v-8h6v8H4z"/></svg></div>
       <h3>Native Finder Feeling</h3>
-      <p>Built with SwiftUI from the ground up. Sidebar, file list, detail panel &mdash; it looks and feels like browsing your Mac, not a web app.</p>
+      <p>SwiftUI from the ground up. Sidebar, file list, detail panel &mdash; feels like a system app.</p>
     </div>
 
-    <div class="feature-card">
-      <div class="feature-icon edit">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      </div>
+    <div class="bento-item bento-emerald">
+      <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></div>
       <h3>Open &amp; Edit Directly</h3>
-      <p>Click any file to open it directly in its online editor. Word, Excel, PowerPoint &mdash; no local copies, no version confusion.</p>
+      <p>Click any file to launch Word, Excel, or PowerPoint directly. No local copies needed.</p>
     </div>
 
-    <div class="feature-card">
-      <div class="feature-icon" style="background: rgba(234, 179, 8, 0.1);">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-      </div>
-      <h3>Favorites &amp; Smart Suggestions</h3>
-      <p>Pin your most-used files for instant access. Frequently Used learns your patterns and surfaces the files you reach for most.</p>
+    <!-- Row 2: normal + wide + normal -->
+    <div class="bento-item bento-amber">
+      <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
+      <h3>Favorites &amp; Suggestions</h3>
+      <p>Pin frequently used files. Smart suggestions surface what you reach for most.</p>
     </div>
 
-    <div class="feature-card">
-      <div class="feature-icon" style="background: rgba(168, 85, 247, 0.1);">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-      </div>
+    <div class="bento-item bento-wide bento-violet">
+      <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></div>
       <h3>Scoped Search</h3>
-      <p>Search globally or narrow results to a specific team or site. Find the right file without wading through hundreds of results.</p>
+      <p>Search globally or narrow results to a specific team, site, or your OneDrive. Find the right file without wading through hundreds of results.</p>
     </div>
 
-    <div class="feature-card">
-      <div class="feature-icon" style="background: rgba(244, 63, 94, 0.1);">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
-      </div>
+    <div class="bento-item bento-teal">
+      <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-1 8h-3v3h-2v-3h-3v-2h3V9h2v3h3v2z"/></svg></div>
+      <h3>Create &amp; Manage Folders</h3>
+      <p>Build folder structures in-app. Right-click or press <span class="bento-accent">&#8984;&#8679;N</span> to create. Delete what you no longer need.</p>
+    </div>
+
+    <!-- Row 3: 2 normal + wide -->
+    <div class="bento-item bento-slate">
+      <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/></svg></div>
+      <h3>Keyboard-First</h3>
+      <p>Every action has a shortcut. Navigate, search, and manage without touching the mouse.</p>
+    </div>
+
+    <div class="bento-item bento-wide bento-rose">
+      <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg></div>
       <h3>Drag &amp; Drop Reorder</h3>
-      <p>Arrange files in the order that makes sense to you. Custom sort order persists per folder across sessions.</p>
+      <p>Arrange files your way. Drag to reorder, drag into folders to move. Custom sort order persists per folder across sessions.</p>
     </div>
   </div>
 </section>
@@ -494,6 +605,24 @@
       </div>
       <p class="screenshot-label">Search across all files instantly</p>
     </div>
+  </div>
+</section>
+
+<!-- ════════════ SHORTCUTS ════════════ -->
+<section class="shortcuts">
+  <h2>Keyboard Shortcuts</h2>
+  <p class="subtitle">Every action at your fingertips. Navigate your files without touching the mouse.</p>
+  <div class="shortcuts-grid">
+    <div class="shortcut-row"><kbd>&#8984;K</kbd><span>Global search</span></div>
+    <div class="shortcut-row"><kbd>&#8984;&#8679;N</kbd><span>New folder</span></div>
+    <div class="shortcut-row"><kbd>&#8984;D</kbd><span>Toggle favorite</span></div>
+    <div class="shortcut-row"><kbd>&#8984;O</kbd><span>Open in browser</span></div>
+    <div class="shortcut-row"><kbd>&#8593; &#8595;</kbd><span>Navigate file list</span></div>
+    <div class="shortcut-row"><kbd>Enter</kbd><span>Open file or folder</span></div>
+    <div class="shortcut-row"><kbd>Space</kbd><span>Quick Look preview</span></div>
+    <div class="shortcut-row"><kbd>Escape</kbd><span>Dismiss or go back</span></div>
+    <div class="shortcut-row"><kbd>&#8984;[</kbd><span>Navigate back</span></div>
+    <div class="shortcut-row"><kbd>&#8984;]</kbd><span>Navigate forward</span></div>
   </div>
 </section>
 

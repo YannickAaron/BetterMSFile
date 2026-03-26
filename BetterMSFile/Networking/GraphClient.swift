@@ -70,6 +70,13 @@ final class GraphClient {
         return try decoder.decode(Response.self, from: data)
     }
 
+    /// DELETE with no response body (returns 204 No Content).
+    func delete(_ url: URL) async throws {
+        var request = try await authenticatedRequest(url: url)
+        request.httpMethod = "DELETE"
+        _ = try await performRequest(request: request)
+    }
+
     /// Get raw data (used for file downloads).
     func getData(_ url: URL) async throws -> Data {
         try await performRequest(url: url)

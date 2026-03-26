@@ -36,6 +36,11 @@ enum GraphEndpoints {
         url("/drives/\(driveId)/items/\(itemId)/content")
     }
 
+    /// DELETE endpoint for a drive item (file or folder) — no query params needed.
+    static func deleteDriveItem(driveId: String, itemId: String) -> URL {
+        url("/drives/\(driveId)/items/\(itemId)")
+    }
+
     static func driveItemThumbnails(driveId: String, itemId: String) -> URL {
         url("/drives/\(driveId)/items/\(itemId)/thumbnails")
     }

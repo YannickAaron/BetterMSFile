@@ -61,12 +61,40 @@ final class FileService {
         GraphEndpoints.driveItemContent(driveId: driveId, itemId: itemId)
     }
 
+    /// Create a new folder inside a parent folder (or drive root if parentId is "root").
+    func createFolder(driveId: String, parentId: String, name: String) async throws -> GraphDriveItem {
+        let url = GraphEndpoints.driveItemChildren(driveId: driveId, itemId: parentId)
+        let body = CreateFolderRequest(name: name, folder: .init(), conflictBehavior: "rename")
+        return try await client.post(url, body: body)
+    }
+
+    /// Delete a file or folder from a drive.
+    func deleteItem(driveId: String, itemId: String) async throws {
+        let url = GraphEndpoints.deleteDriveItem(driveId: driveId, itemId: itemId)
+        try await client.delete(url)
+    }
+
     /// Move a file to a different folder via PATCH.
     func moveItem(driveId: String, itemId: String, toFolderId: String) async throws -> GraphDriveItem {
         let url = GraphEndpoints.driveItem(driveId: driveId, itemId: itemId)
         let body = MoveItemRequest(parentReference: .init(id: toFolderId))
         return try await client.patch(url, body: body)
     }
+}
+
+// MARK: - Create Folder Request
+
+private struct CreateFolderRequest: Encodable {
+    let name: String
+    let folder: FolderFacet
+    let conflictBehavior: String
+
+    enum CodingKeys: String, CodingKey {
+        case name, folder
+        case conflictBehavior = "@microsoft.graph.conflictBehavior"
+    }
+
+    struct FolderFacet: Encodable {}
 }
 
 // MARK: - Move Request
