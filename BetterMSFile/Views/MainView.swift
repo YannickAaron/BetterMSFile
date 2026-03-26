@@ -38,6 +38,7 @@ struct MainView: View {
     @State private var searchVM: SearchViewModel
     @State private var favoritesVM = FavoritesViewModel()
     @State private var frecencyVM = FrecencyViewModel()
+    @State private var loadContentTask: Task<Void, Never>?
     @FocusState private var isSearchFieldFocused: Bool
 
     init(appState: AppState) {
@@ -119,7 +120,9 @@ struct MainView: View {
         .onChange(of: selectedItem) { _, newValue in
             if let item = newValue {
                 if isSearching { dismissSearch() }
-                Task {
+                // Cancel any in-flight content load to prevent stale results
+                loadContentTask?.cancel()
+                loadContentTask = Task {
                     selectedFileIds = []
                     await loadContent(for: item)
                 }
@@ -219,6 +222,19 @@ struct MainView: View {
                 if sidebarVM.isLoadingSites {
                     ProgressView()
                         .controlSize(.small)
+                } else if let error = sidebarVM.sitesErrorMessage {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Failed to load sites")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                        Text(error)
+                            .foregroundStyle(.tertiary)
+                            .font(.caption2)
+                        Button("Retry") {
+                            Task { await sidebarVM.loadSites() }
+                        }
+                        .font(.caption)
+                    }
                 } else if sidebarVM.sites.isEmpty {
                     Text("No teams or sites found")
                         .foregroundStyle(.secondary)
@@ -370,6 +386,9 @@ struct MainView: View {
     // MARK: - Content Loading
 
     private func loadContent(for item: SidebarItem) async {
+        // Signal loading immediately so the UI reflects the switch
+        fileListVM.setLoading()
+
         switch item {
         case .myFiles:
             await fileListVM.loadMyDriveRoot()
@@ -379,23 +398,25 @@ struct MainView: View {
             await fileListVM.loadSharedWithMe()
         case .sharePointSite(let site):
             if let groupId = site.groupId {
-                fileListVM.setLoading()
                 do {
                     let channels = try await appState.siteService.fetchTeamChannels(
                         teamId: groupId,
                         teamName: site.displayName,
                         siteId: site.id
                     )
-                    await fileListVM.loadTeamChannels(channels, teamName: site.displayName, siteId: site.id)
+                    guard !Task.isCancelled else { return }
+                    fileListVM.loadTeamChannels(channels, teamName: site.displayName, siteId: site.id)
                 } catch {
+                    guard !Task.isCancelled else { return }
+                    // Team channels failed — fall back to site drives
                     print("Failed to load channels: \(error.localizedDescription)")
-                    await fileListVM.loadSiteDrives(site: site)
+                    fileListVM.loadSiteDrives(site: site)
                 }
             } else if site.drives.count == 1, let drive = site.drives.first {
                 let source = FileSource.sharePoint(siteName: drive.siteName, siteId: drive.siteId)
                 await fileListVM.loadDriveRoot(driveId: drive.id, source: source)
             } else {
-                await fileListVM.loadSiteDrives(site: site)
+                fileListVM.loadSiteDrives(site: site)
             }
         }
     }

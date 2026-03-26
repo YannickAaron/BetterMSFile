@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-@Observable
+@MainActor @Observable
 final class FileListViewModel {
     private let fileService: FileService
     private var modelContext: ModelContext?
@@ -90,11 +90,11 @@ final class FileListViewModel {
     }
 
     /// Show a Team's channels as navigable folders.
-    func loadTeamChannels(_ channels: [TeamChannel], teamName: String, siteId: String) async {
+    func loadTeamChannels(_ channels: [TeamChannel], teamName: String, siteId: String) {
         let source = FileSource.sharePoint(siteName: teamName, siteId: siteId)
         breadcrumbs = [BreadcrumbItem(name: teamName, driveId: "", itemId: nil, source: source)]
+        currentCacheKey = "team_\(siteId)"
         errorMessage = nil
-        isLoading = true
 
         files = channels.map { channel in
             // Use driveId + folderId so navigateIntoFolder can load the channel's files
@@ -108,14 +108,15 @@ final class FileListViewModel {
         }
         sortFiles()
         isLoading = false
+        isRefreshing = false
     }
 
     /// Show a SharePoint site's document libraries as navigable folders.
-    func loadSiteDrives(site: SharePointSite) async {
+    func loadSiteDrives(site: SharePointSite) {
         let siteName = site.displayName
         breadcrumbs = [BreadcrumbItem(name: siteName, driveId: "", itemId: nil, source: .sharePoint(siteName: siteName, siteId: site.id))]
+        currentCacheKey = "site_\(site.id)"
         errorMessage = nil
-        isLoading = true
 
         files = site.drives.map { drive in
             UnifiedFile(
@@ -127,8 +128,8 @@ final class FileListViewModel {
             )
         }
         sortFiles()
-
         isLoading = false
+        isRefreshing = false
     }
 
     /// Navigate to a file's parent folder (jump to location from search).
@@ -240,16 +241,21 @@ final class FileListViewModel {
         // 2. Fetch fresh data from network
         do {
             let freshFiles = try await fetch()
+            // Guard: user may have navigated away while we were fetching
+            guard currentCacheKey == cacheKey else { return }
             saveToCache(files: freshFiles, key: cacheKey)
             files = freshFiles
             sortFiles()
         } catch {
+            guard currentCacheKey == cacheKey else { return }
             // Only show error if we have no cached data
             if files.isEmpty {
                 errorMessage = error.localizedDescription
             }
         }
 
+        // Only clear loading state if we're still the active request
+        guard currentCacheKey == cacheKey else { return }
         isLoading = false
         isRefreshing = false
     }
@@ -359,7 +365,11 @@ final class FileListViewModel {
     }
 
     /// Move a file into a folder via Graph API.
+    /// Throws if the file and folder are on different drives (cross-drive moves are not supported).
     func moveFileToFolder(file: UnifiedFile, folder: UnifiedFile) async throws {
+        guard file.driveId == folder.driveId else {
+            throw MoveError.crossDriveNotSupported
+        }
         _ = try await fileService.moveItem(
             driveId: file.driveId,
             itemId: file.itemId,
@@ -381,6 +391,11 @@ final class FileListViewModel {
             rollbackRemoveFile(file)
             throw error
         }
+    }
+
+    /// Download a file to a temporary location with authentication.
+    func downloadFile(driveId: String, itemId: String) async throws -> URL {
+        try await fileService.downloadFile(driveId: driveId, itemId: itemId)
     }
 
     private func invalidateCache(for key: String?) {
@@ -426,5 +441,25 @@ final class FileListViewModel {
             context.insert(CustomSortOrder(folderKey: key, orderedIds: orderedIds))
         }
         try? context.save()
+    }
+
+    /// Clear all in-memory cached data (e.g., on sign-out).
+    func clearCache() {
+        memoryCache.removeAll()
+        files = []
+        breadcrumbs = []
+        currentCacheKey = nil
+        errorMessage = nil
+    }
+}
+
+enum MoveError: LocalizedError {
+    case crossDriveNotSupported
+
+    var errorDescription: String? {
+        switch self {
+        case .crossDriveNotSupported:
+            "Cannot move files between different drives (e.g., OneDrive to SharePoint). Use copy instead."
+        }
     }
 }

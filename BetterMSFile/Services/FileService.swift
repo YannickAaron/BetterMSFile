@@ -61,6 +61,12 @@ final class FileService {
         GraphEndpoints.driveItemContent(driveId: driveId, itemId: itemId)
     }
 
+    /// Download a file to a temporary location with proper authentication.
+    func downloadFile(driveId: String, itemId: String) async throws -> URL {
+        let url = GraphEndpoints.driveItemContent(driveId: driveId, itemId: itemId)
+        return try await client.downloadFile(url)
+    }
+
     /// Create a new folder inside a parent folder (or drive root if parentId is "root").
     func createFolder(driveId: String, parentId: String, name: String) async throws -> GraphDriveItem {
         let url = GraphEndpoints.driveItemChildren(driveId: driveId, itemId: parentId)
@@ -108,6 +114,12 @@ private struct MoveItemRequest: Encodable {
 
 // MARK: - Mapping
 
+private let iso8601Formatter: ISO8601DateFormatter = {
+    let formatter = ISO8601DateFormatter()
+    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    return formatter
+}()
+
 extension GraphDriveItem {
     func toUnifiedFile(source: FileSource) -> UnifiedFile {
         let driveId = parentReference?.driveId ?? ""
@@ -134,6 +146,6 @@ extension GraphDriveItem {
 
     private func parseDate(_ string: String?) -> Date? {
         guard let string else { return nil }
-        return ISO8601DateFormatter().date(from: string)
+        return iso8601Formatter.date(from: string)
     }
 }

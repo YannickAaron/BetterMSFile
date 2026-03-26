@@ -1,7 +1,7 @@
 import Foundation
 import MSAL
 
-@Observable
+@MainActor @Observable
 final class AuthService {
     private(set) var currentAccount: MSALAccount?
     private(set) var accessToken: String?

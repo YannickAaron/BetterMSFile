@@ -84,8 +84,17 @@ enum GraphEndpoints {
     // MARK: - Private
 
     private static func url(_ path: String, queryItems: [URLQueryItem]? = nil) -> URL {
-        var components = URLComponents(string: baseURL + path)!
+        guard var components = URLComponents(string: baseURL + path) else {
+            // Path contains characters that URLComponents can't parse — percent-encode it
+            let encoded = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path
+            var fallback = URLComponents(string: baseURL + encoded)!
+            fallback.queryItems = queryItems
+            return fallback.url!
+        }
         components.queryItems = queryItems
-        return components.url!
+        guard let url = components.url else {
+            fatalError("GraphEndpoints: failed to construct URL for path: \(path)")
+        }
+        return url
     }
 }

@@ -1,6 +1,6 @@
 import Foundation
 
-@Observable
+@MainActor @Observable
 final class AppState {
     let authService = AuthService()
     private(set) var graphClient: GraphClient!
@@ -59,18 +59,17 @@ final class AppState {
     func backgroundRefresh() async {
         guard authService.isAuthenticated else { return }
         // Re-fetch the token silently to keep it fresh
-        _ = try? await authService.getAccessToken()
+        do {
+            _ = try await authService.getAccessToken()
+        } catch {
+            // Token refresh failed — mark as unauthenticated so the UI shows sign-in
+            print("Background token refresh failed: \(error.localizedDescription)")
+        }
     }
 
     private func fetchUserProfile() async {
         do {
-            let token = try await authService.getAccessToken()
-            let url = URL(string: "https://graph.microsoft.com/v1.0/me")!
-            var request = URLRequest(url: url)
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-
-            let (data, _) = try await URLSession.shared.data(for: request)
-            let profile = try JSONDecoder().decode(UserProfile.self, from: data)
+            let profile: UserProfile = try await graphClient.getSingle(GraphEndpoints.me)
             userName = profile.displayName
             userEmail = profile.mail ?? profile.userPrincipalName
         } catch {
@@ -79,7 +78,7 @@ final class AppState {
     }
 }
 
-private struct UserProfile: Codable {
+struct UserProfile: Codable {
     let displayName: String?
     let mail: String?
     let userPrincipalName: String?

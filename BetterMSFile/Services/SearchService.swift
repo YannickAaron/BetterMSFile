@@ -44,7 +44,10 @@ final class SearchService {
                 if case .shared = $0.source { return true }
                 return false
             }
-            return SearchResult(files: filtered, moreAvailable: moreAvailable, total: total)
+            // Adjust total and moreAvailable to reflect filtered results.
+            // If we filtered out items, there may be more OneDrive results in subsequent pages.
+            let adjustedMoreAvailable = moreAvailable || (filtered.count < files.count && files.count > 0)
+            return SearchResult(files: filtered, moreAvailable: adjustedMoreAvailable, total: nil)
         }
 
         return SearchResult(files: files, moreAvailable: moreAvailable, total: total)
@@ -61,7 +64,14 @@ final class SearchService {
 
         // Add author filter
         if let author = filters.author {
-            queryString += " author:\"\(escapeKQL(author))\""
+            queryString += " author:\(escapeKQL(author))"
+        }
+
+        // Add date filter
+        if let modifiedAfter = filters.modifiedAfter {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime]
+            queryString += " lastModifiedTime>=\"\(formatter.string(from: modifiedAfter))\""
         }
 
         // Add scope filter (SharePoint site scoping via KQL)
@@ -83,10 +93,13 @@ final class SearchService {
         )
     }
 
-    /// Escape characters that have special meaning in KQL (Keyword Query Language).
+    /// Escape a user query for safe use in KQL (Keyword Query Language).
+    /// Wraps the term in double quotes so special characters are treated as literals.
     private func escapeKQL(_ term: String) -> String {
-        term.replacingOccurrences(of: "\"", with: "\\\"")
-            .replacingOccurrences(of: "'", with: "\\'")
+        // Escape internal double quotes, then wrap in quotes to treat as a phrase
+        let escaped = term.replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+        return "\"\(escaped)\""
     }
 }
 

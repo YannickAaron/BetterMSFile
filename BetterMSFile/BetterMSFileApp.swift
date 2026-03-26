@@ -10,6 +10,7 @@ struct BetterMSFileApp: App {
         WindowGroup {
             ContentView(appState: appState)
                 .task {
+                    cleanupTempFiles()
                     await appState.restoreSession()
                 }
 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -83,6 +84,23 @@ struct BetterMSFileApp: App {
                 Button("Open & Sign In") {
                     NSApplication.shared.activate(ignoringOtherApps: true)
                 }
+            }
+        }
+    }
+
+    /// Remove stale temp files from previous Quick Look sessions.
+    private func cleanupTempFiles() {
+        let tempDir = FileManager.default.temporaryDirectory
+        guard let contents = try? FileManager.default.contentsOfDirectory(
+            at: tempDir, includingPropertiesForKeys: [.creationDateKey], options: .skipsHiddenFiles
+        ) else { return }
+
+        let cutoff = Date.now.addingTimeInterval(-24 * 60 * 60) // older than 24 hours
+        for fileURL in contents {
+            if let attrs = try? fileURL.resourceValues(forKeys: [.creationDateKey]),
+               let created = attrs.creationDate,
+               created < cutoff {
+                try? FileManager.default.removeItem(at: fileURL)
             }
         }
     }

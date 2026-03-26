@@ -14,6 +14,7 @@ private struct GitHubRelease: Codable {
 
 // MARK: - Update Service
 
+@MainActor @Observable
 final class UpdateService {
     private(set) var updateAvailable = false
     private(set) var latestVersion: String?

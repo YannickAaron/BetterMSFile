@@ -1,7 +1,7 @@
 import Foundation
 import SwiftData
 
-@Observable
+@MainActor @Observable
 final class FrecencyViewModel {
     private var modelContext: ModelContext?
 

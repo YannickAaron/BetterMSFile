@@ -82,6 +82,20 @@ final class GraphClient {
         try await performRequest(url: url)
     }
 
+    /// Download a file to a temporary location with authentication.
+    /// The Graph content endpoint returns a 302 redirect to a pre-authenticated URL.
+    func downloadFile(_ url: URL) async throws -> URL {
+        let request = try await authenticatedRequest(url: url)
+        let (tempURL, response) = try await session.download(for: request)
+
+        if let httpResponse = response as? HTTPURLResponse,
+           !(200...399).contains(httpResponse.statusCode) {
+            throw GraphError.httpError(statusCode: httpResponse.statusCode, message: "Download failed")
+        }
+
+        return tempURL
+    }
+
     // MARK: - Private
 
     private func performRequest(url: URL) async throws -> Data {
@@ -102,9 +116,9 @@ final class GraphClient {
 
         case 401:
             // Token expired — silently refresh and retry once
-            if retryCount < 1 {
+            if retryCount < 1, let url = request.url {
                 print("GraphClient: 401 — refreshing token and retrying")
-                let freshRequest = try await authenticatedRequest(url: request.url!)
+                let freshRequest = try await authenticatedRequest(url: url)
                 return try await performRequest(request: freshRequest, retryCount: retryCount + 1)
             }
             throw GraphError.unauthorized

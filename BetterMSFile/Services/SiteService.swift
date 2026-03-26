@@ -58,28 +58,34 @@ final class SiteService {
     private func fetchJoinedTeamSites() async -> [SharePointSite] {
         do {
             let teams: [GraphTeam] = try await client.getAllPages(GraphEndpoints.joinedTeams)
-            var sites: [SharePointSite] = []
 
-            for team in teams {
-                let teamName = team.displayName ?? "Unknown Team"
-                do {
-                    // Get the Team's underlying SharePoint site
-                    let site: GraphSite = try await client.getSingle(GraphEndpoints.groupSiteRoot(groupId: team.id))
-                    // Get drives for that site
-                    let drives: [GraphDrive] = try await client.getAllPages(GraphEndpoints.siteDrives(siteId: site.id))
-                    let spDrives = drives
-                        .filter { $0.driveType == "documentLibrary" }
-                        .map { SharePointDrive(id: $0.id, name: $0.name ?? "Documents", siteId: site.id, siteName: teamName, webUrl: $0.webUrl ?? "") }
+            return await withTaskGroup(of: SharePointSite?.self) { group in
+                for team in teams {
+                    group.addTask {
+                        let teamName = team.displayName ?? "Unknown Team"
+                        do {
+                            let site: GraphSite = try await self.client.getSingle(GraphEndpoints.groupSiteRoot(groupId: team.id))
+                            let drives: [GraphDrive] = try await self.client.getAllPages(GraphEndpoints.siteDrives(siteId: site.id))
+                            let spDrives = drives
+                                .filter { $0.driveType == "documentLibrary" }
+                                .map { SharePointDrive(id: $0.id, name: $0.name ?? "Documents", siteId: site.id, siteName: teamName, webUrl: $0.webUrl ?? "") }
 
-                    if !spDrives.isEmpty {
-                        sites.append(SharePointSite(id: site.id, displayName: teamName, drives: spDrives, groupId: team.id))
+                            if !spDrives.isEmpty {
+                                return SharePointSite(id: site.id, displayName: teamName, drives: spDrives, groupId: team.id)
+                            }
+                        } catch {
+                            print("Skipping team \(teamName): \(error.localizedDescription)")
+                        }
+                        return nil
                     }
-                } catch {
-                    print("Skipping team \(teamName): \(error.localizedDescription)")
                 }
-            }
 
-            return sites
+                var sites: [SharePointSite] = []
+                for await site in group {
+                    if let site { sites.append(site) }
+                }
+                return sites
+            }
         } catch {
             print("Failed to fetch joined teams: \(error.localizedDescription)")
             return []

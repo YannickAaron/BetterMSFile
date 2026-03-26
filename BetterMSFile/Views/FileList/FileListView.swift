@@ -13,7 +13,7 @@ struct FileListView: View {
     @State private var newFolderName = ""
     @State private var showDeleteConfirmation = false
     @State private var itemsToDelete: Set<String> = []
-    @State private var deleteError: String?
+    @State private var operationError: String?
 
     private var selectedFile: UnifiedFile? {
         guard let id = selectedFileIds.first else { return nil }
@@ -198,11 +198,17 @@ struct FileListView: View {
             Button("Create") {
                 let name = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !name.isEmpty else { return }
+                // Validate against characters invalid in OneDrive/SharePoint
+                let invalidChars = CharacterSet(charactersIn: "\"*:<>?/\\|#%")
+                if name.rangeOfCharacter(from: invalidChars) != nil {
+                    operationError = "Folder names cannot contain: \" * : < > ? / \\ | # %"
+                    return
+                }
                 Task {
                     do {
                         try await viewModel.createFolder(name: name)
                     } catch {
-                        deleteError = error.localizedDescription
+                        operationError = error.localizedDescription
                     }
                 }
             }
@@ -220,19 +226,19 @@ struct FileListView: View {
                         try await viewModel.deleteItems(ids)
                         selectedFileIds.subtract(ids)
                     } catch {
-                        deleteError = error.localizedDescription
+                        operationError = error.localizedDescription
                     }
                 }
             }
             Button("Cancel", role: .cancel) {}
         }
         .alert("Error", isPresented: .init(
-            get: { deleteError != nil },
-            set: { if !$0 { deleteError = nil } }
+            get: { operationError != nil },
+            set: { if !$0 { operationError = nil } }
         )) {
-            Button("OK") { deleteError = nil }
+            Button("OK") { operationError = nil }
         } message: {
-            Text(deleteError ?? "")
+            Text(operationError ?? "")
         }
         .onReceive(NotificationCenter.default.publisher(for: .createNewFolder)) { _ in
             if viewModel.canCreateFolder {
@@ -272,6 +278,7 @@ struct FileListView: View {
             try await viewModel.moveFileToFolder(file: file, folder: folder)
         } catch {
             viewModel.rollbackRemoveFile(file)
+            operationError = error.localizedDescription
         }
     }
 
@@ -376,40 +383,63 @@ struct FileListView: View {
         isDownloading = true
         defer { isDownloading = false }
 
-        let downloadURL = GraphEndpoints.driveItemContent(driveId: file.driveId, itemId: file.itemId)
-
         do {
-            let downloadsDir = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first!
-            let destinationURL = downloadsDir.appendingPathComponent(file.name)
+            guard let downloadsDir = FileManager.default.urls(for: .downloadsDirectory, in: .userDomainMask).first else {
+                operationError = "Could not locate Downloads folder."
+                return
+            }
+            var destinationURL = downloadsDir.appendingPathComponent(file.name)
 
-            // Use URLSession to download (the Graph API returns a 302 redirect)
-            let (tempURL, _) = try await URLSession.shared.download(from: downloadURL)
+            // Resolve file name collisions
+            destinationURL = uniqueFileURL(destinationURL)
+
+            let tempURL = try await viewModel.downloadFile(driveId: file.driveId, itemId: file.itemId)
             try FileManager.default.moveItem(at: tempURL, to: destinationURL)
 
             // Reveal in Finder
             NSWorkspace.shared.selectFile(destinationURL.path, inFileViewerRootedAtPath: downloadsDir.path)
         } catch {
-            print("Download failed: \(error.localizedDescription)")
+            operationError = "Download failed: \(error.localizedDescription)"
         }
     }
 
-    private func quickLook(_ file: UnifiedFile) async {
-        frecencyVM?.recordAccess(for: file)
-        let downloadURL = GraphEndpoints.driveItemContent(driveId: file.driveId, itemId: file.itemId)
+    /// Generate a unique file path by appending a counter if the file already exists.
+    private func uniqueFileURL(_ url: URL) -> URL {
+        guard FileManager.default.fileExists(atPath: url.path) else { return url }
 
+        let directory = url.deletingLastPathComponent()
+        let stem = url.deletingPathExtension().lastPathComponent
+        let ext = url.pathExtension
+
+        var counter = 1
+        var candidate: URL
+        repeat {
+            let newName = ext.isEmpty ? "\(stem) (\(counter))" : "\(stem) (\(counter)).\(ext)"
+            candidate = directory.appendingPathComponent(newName)
+            counter += 1
+        } while FileManager.default.fileExists(atPath: candidate.path)
+
+        return candidate
+    }
+
+    private func quickLook(_ file: UnifiedFile) async {
         do {
             let tempDir = FileManager.default.temporaryDirectory
             let tempFile = tempDir.appendingPathComponent(file.name)
 
-            let (tempURL, _) = try await URLSession.shared.download(from: downloadURL)
+            guard !Task.isCancelled else { return }
+            let tempURL = try await viewModel.downloadFile(driveId: file.driveId, itemId: file.itemId)
+            guard !Task.isCancelled else { return }
 
             // Remove existing temp file if any
             try? FileManager.default.removeItem(at: tempFile)
             try FileManager.default.moveItem(at: tempURL, to: tempFile)
 
             quickLookURL = tempFile
+            // Record access only after successful preview
+            frecencyVM?.recordAccess(for: file)
         } catch {
-            print("Quick Look failed: \(error.localizedDescription)")
+            operationError = "Quick Look failed: \(error.localizedDescription)"
         }
     }
 }
