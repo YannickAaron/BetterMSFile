@@ -4,10 +4,6 @@
 
 A lightweight native macOS app for fast, unified access to Microsoft 365 files across OneDrive and SharePoint.
 
-## Download
-
-[**Download BetterMSFile v1.2**](https://github.com/YannickAaron/BetterMSFile/releases/latest) — Signed and notarized `.dmg` for macOS. Open the DMG and drag BetterMSFile to Applications.
-
 ## Why
 
 Microsoft's default apps (OneDrive, SharePoint, Teams) scatter files across fragmented interfaces. Finding a file means knowing which app to open and which site to check. BetterMSFile merges everything into a single, fast, keyboard-first file browser.
@@ -16,6 +12,10 @@ Microsoft's default apps (OneDrive, SharePoint, Teams) scatter files across frag
 
 - **Unified file view** — OneDrive, SharePoint, and shared files in one place
 - **Fast search** — Global search across all sources via Microsoft Graph Search API
+- **Scoped search** — Filter search to a specific team, site, or your OneDrive
+- **Favorites** — Pin frequently used files and folders for instant access (Cmd+D)
+- **Frequently Used** — Smart suggestions based on your usage patterns (frecency)
+- **Drag-and-drop reorder** — Custom file ordering per folder, persisted across sessions
 - **Keyboard-first** — Navigate entirely with keyboard shortcuts (Cmd+K search, arrow keys, Space for Quick Look)
 - **Native macOS** — Built with SwiftUI, feels like a system app
 - **Instant startup** — Local cache with background refresh
@@ -28,7 +28,7 @@ Microsoft's default apps (OneDrive, SharePoint, Teams) scatter files across frag
 - Microsoft 365 work/school account
 - Azure AD app registration with delegated permissions:
   - `User.Read`
-  - `Files.Read.All`
+  - `Files.ReadWrite.All`
   - `Sites.Read.All`
 
 ## Setup
@@ -79,7 +79,7 @@ BetterMSFile/
 | ↑ / ↓ | Navigate file list |
 | Enter | Open file / enter folder |
 | Cmd+O | Open in browser |
-| Cmd+D | Download file |
+| Cmd+D | Toggle favorite |
 | Space | Quick Look preview |
 | Escape | Dismiss search / go back |
 | Cmd+[ / Cmd+] | Back / forward |
@@ -93,5 +93,5 @@ BetterMSFile/
 | Scope | Purpose |
 |-------|---------|
 | `User.Read` | User profile |
-| `Files.Read.All` | OneDrive + SharePoint file access |
+| `Files.ReadWrite.All` | OneDrive + SharePoint file access + move |
 | `Sites.Read.All` | SharePoint site discovery |

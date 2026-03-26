@@ -16,6 +16,16 @@ final class FileListViewModel {
 
     // webDavUrl is now fetched per-file from Graph API — no need for drive-level URL tracking
 
+    /// The cache key for the currently displayed folder/view.
+    var currentCacheKey: String?
+
+    /// Whether the current view has a custom sort order.
+    var hasCustomOrder: Bool {
+        guard let key = currentCacheKey, let context = modelContext else { return false }
+        let descriptor = FetchDescriptor<CustomSortOrder>(predicate: #Predicate { $0.folderKey == key })
+        return ((try? context.fetchCount(descriptor)) ?? 0) > 0
+    }
+
     /// Cache expiry: 15 minutes for file lists.
     private let cacheExpiry: TimeInterval = 15 * 60
 
@@ -207,6 +217,7 @@ final class FileListViewModel {
     // MARK: - Stale-while-revalidate
 
     private func loadWithCache(cacheKey: String, fetch: @escaping () async throws -> [UnifiedFile]) async {
+        currentCacheKey = cacheKey
         errorMessage = nil
 
         // 1. Show cached data immediately if available
@@ -273,9 +284,110 @@ final class FileListViewModel {
     }
 
     private func sortFiles() {
+        // Check for custom sort order first
+        if let key = currentCacheKey, let context = modelContext {
+            let descriptor = FetchDescriptor<CustomSortOrder>(predicate: #Predicate { $0.folderKey == key })
+            if let custom = (try? context.fetch(descriptor))?.first {
+                let orderMap = Dictionary(uniqueKeysWithValues: custom.orderedIds.enumerated().map { ($1, $0) })
+                let maxIndex = custom.orderedIds.count
+                files.sort { a, b in
+                    let indexA = orderMap[a.uniqueId] ?? maxIndex
+                    let indexB = orderMap[b.uniqueId] ?? maxIndex
+                    if indexA != indexB { return indexA < indexB }
+                    // New files (not in custom order) go at the end, sorted alphabetically
+                    return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+                }
+                return
+            }
+        }
+
+        // Default sort: folders first, then alphabetical
         files.sort { a, b in
             if a.isFolder != b.isFolder { return a.isFolder }
             return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
         }
+    }
+
+    // MARK: - Drag-and-Drop
+
+    /// Optimistic removal — called before the API move call.
+    func optimisticallyRemoveFile(_ uniqueId: String) {
+        files.removeAll { $0.uniqueId == uniqueId }
+    }
+
+    /// Rollback if the API move fails — re-inserts the file and re-sorts.
+    func rollbackRemoveFile(_ file: UnifiedFile) {
+        files.append(file)
+        sortFiles()
+    }
+
+    /// Move a file into a folder via Graph API.
+    func moveFileToFolder(file: UnifiedFile, folder: UnifiedFile) async throws {
+        _ = try await fileService.moveItem(
+            driveId: file.driveId,
+            itemId: file.itemId,
+            toFolderId: folder.itemId
+        )
+        invalidateCache(for: currentCacheKey)
+        invalidateCache(for: "folder_\(folder.driveId)_\(folder.itemId)")
+    }
+
+    /// Move a file to a breadcrumb folder by IDs.
+    func moveFileToBreadcrumbFolder(fileId: String, driveId: String, folderId: String) async throws {
+        guard let file = files.first(where: { $0.uniqueId == fileId }) else { return }
+        optimisticallyRemoveFile(fileId)
+        do {
+            _ = try await fileService.moveItem(driveId: file.driveId, itemId: file.itemId, toFolderId: folderId)
+            invalidateCache(for: currentCacheKey)
+            invalidateCache(for: "folder_\(driveId)_\(folderId)")
+        } catch {
+            rollbackRemoveFile(file)
+            throw error
+        }
+    }
+
+    private func invalidateCache(for key: String?) {
+        guard let key else { return }
+        memoryCache.removeValue(forKey: key)
+    }
+
+    // MARK: - Reordering
+
+    func reorderFile(draggedId: String, targetId: String) {
+        guard draggedId != targetId,
+              let fromIndex = files.firstIndex(where: { $0.uniqueId == draggedId }),
+              let toIndex = files.firstIndex(where: { $0.uniqueId == targetId }) else { return }
+
+        let item = files.remove(at: fromIndex)
+        files.insert(item, at: toIndex)
+        saveCustomOrder()
+    }
+
+    func resetSortOrder() {
+        guard let key = currentCacheKey, let context = modelContext else { return }
+        let descriptor = FetchDescriptor<CustomSortOrder>(predicate: #Predicate { $0.folderKey == key })
+        if let existing = (try? context.fetch(descriptor))?.first {
+            context.delete(existing)
+            try? context.save()
+        }
+        // Re-apply default sort
+        files.sort { a, b in
+            if a.isFolder != b.isFolder { return a.isFolder }
+            return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+        }
+    }
+
+    private func saveCustomOrder() {
+        guard let key = currentCacheKey, let context = modelContext else { return }
+        let orderedIds = files.map(\.uniqueId)
+
+        let descriptor = FetchDescriptor<CustomSortOrder>(predicate: #Predicate { $0.folderKey == key })
+        if let existing = (try? context.fetch(descriptor))?.first {
+            existing.orderedIds = orderedIds
+            existing.updatedAt = .now
+        } else {
+            context.insert(CustomSortOrder(folderKey: key, orderedIds: orderedIds))
+        }
+        try? context.save()
     }
 }

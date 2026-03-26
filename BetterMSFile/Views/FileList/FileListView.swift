@@ -3,22 +3,52 @@ import QuickLookUI
 
 struct FileListView: View {
     let viewModel: FileListViewModel
-    @Binding var selectedFileId: String?
+    @Binding var selectedFileIds: Set<String>
+    var favoritesVM: FavoritesViewModel?
+    var frecencyVM: FrecencyViewModel?
     @State private var quickLookURL: URL?
     @State private var isDownloading = false
+    @State private var dropTargetId: String?
 
     private var selectedFile: UnifiedFile? {
-        guard let id = selectedFileId else { return nil }
+        guard let id = selectedFileIds.first else { return nil }
         return viewModel.files.first { $0.uniqueId == id }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             // Breadcrumb bar
-            if viewModel.breadcrumbs.count > 1 {
-                BreadcrumbBar(breadcrumbs: viewModel.breadcrumbs) { crumb in
-                    Task { await viewModel.navigateToBreadcrumb(crumb) }
+            if viewModel.breadcrumbs.count > 1 || viewModel.hasCustomOrder {
+                HStack {
+                    if viewModel.breadcrumbs.count > 1 {
+                        BreadcrumbBar(
+                            breadcrumbs: viewModel.breadcrumbs,
+                            onSelect: { crumb in
+                                Task { await viewModel.navigateToBreadcrumb(crumb) }
+                            },
+                            onMoveToFolder: { draggedId, driveId, folderId in
+                                Task {
+                                    try? await viewModel.moveFileToBreadcrumbFolder(
+                                        fileId: draggedId, driveId: driveId, folderId: folderId
+                                    )
+                                }
+                            }
+                        )
+                    }
+                    Spacer()
+                    if viewModel.hasCustomOrder {
+                        Button {
+                            viewModel.resetSortOrder()
+                        } label: {
+                            Label("Reset Order", systemImage: "arrow.up.arrow.down")
+                                .font(.caption)
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
+                        .padding(.trailing, 12)
+                    }
                 }
+                .background(.bar)
             }
 
             // File list
@@ -50,9 +80,35 @@ struct FileListView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ZStack(alignment: .top) {
-                    List(viewModel.files, id: \.uniqueId, selection: $selectedFileId) { file in
+                    List(viewModel.files, id: \.uniqueId, selection: $selectedFileIds) { file in
                         FileRowView(file: file)
                             .tag(file.uniqueId)
+                            .listRowBackground(dropHighlight(for: file))
+                            .draggable(file.uniqueId)
+                            .dropDestination(for: String.self) { items, _ in
+                                guard let draggedId = items.first, draggedId != file.uniqueId else { return false }
+                                // If dragged item is in selection, operate on all selected items
+                                let idsToMove = selectedFileIds.contains(draggedId) ? selectedFileIds : [draggedId]
+                                if file.isFolder {
+                                    Task {
+                                        for id in idsToMove where id != file.uniqueId {
+                                            await moveFile(draggedId: id, intoFolder: file)
+                                        }
+                                    }
+                                } else {
+                                    viewModel.reorderFile(draggedId: draggedId, targetId: file.uniqueId)
+                                }
+                                dropTargetId = nil
+                                return true
+                            } isTargeted: { targeted in
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    if targeted {
+                                        dropTargetId = file.uniqueId
+                                    } else if dropTargetId == file.uniqueId {
+                                        dropTargetId = nil
+                                    }
+                                }
+                            }
                     }
                     .onKeyPress(.return) {
                         if let file = selectedFile {
@@ -114,6 +170,39 @@ struct FileListView: View {
         }
     }
 
+    // MARK: - Drag-and-Drop Visual Feedback
+
+    @ViewBuilder
+    private func dropHighlight(for file: UnifiedFile) -> some View {
+        if dropTargetId == file.uniqueId {
+            if file.isFolder {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Color.accentColor.opacity(0.15))
+                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.accentColor.opacity(0.4), lineWidth: 1.5))
+            } else {
+                VStack(spacing: 0) {
+                    Color.accentColor.frame(height: 2)
+                    Spacer()
+                }
+            }
+        } else {
+            Color.clear
+        }
+    }
+
+    private func moveFile(draggedId: String, intoFolder folder: UnifiedFile) async {
+        guard let file = viewModel.files.first(where: { $0.uniqueId == draggedId }),
+              !file.isFolder else { return }
+
+        viewModel.optimisticallyRemoveFile(draggedId)
+
+        do {
+            try await viewModel.moveFileToFolder(file: file, folder: folder)
+        } catch {
+            viewModel.rollbackRemoveFile(file)
+        }
+    }
+
     // MARK: - Actions
 
     @ViewBuilder
@@ -153,9 +242,17 @@ struct FileListView: View {
                 Task { await quickLook(file) }
             }
         }
+
+        if let favoritesVM {
+            Divider()
+            Button(favoritesVM.isFavorite(file) ? "Remove from Favorites" : "Add to Favorites") {
+                favoritesVM.toggleFavorite(for: file)
+            }
+        }
     }
 
     private func handleDoubleClick(_ file: UnifiedFile) {
+        frecencyVM?.recordAccess(for: file)
         if file.isFolder {
             Task { await viewModel.navigateIntoFolder(file) }
         } else {
@@ -164,6 +261,7 @@ struct FileListView: View {
     }
 
     private func openInBrowser(_ file: UnifiedFile) {
+        frecencyVM?.recordAccess(for: file)
         if let url = URL(string: file.webURL) {
             NSWorkspace.shared.open(url)
         }
@@ -197,6 +295,7 @@ struct FileListView: View {
     }
 
     private func quickLook(_ file: UnifiedFile) async {
+        frecencyVM?.recordAccess(for: file)
         let downloadURL = GraphEndpoints.driveItemContent(driveId: file.driveId, itemId: file.itemId)
 
         do {
@@ -221,6 +320,8 @@ struct FileListView: View {
 struct BreadcrumbBar: View {
     let breadcrumbs: [FileListViewModel.BreadcrumbItem]
     let onSelect: (FileListViewModel.BreadcrumbItem) -> Void
+    var onMoveToFolder: ((String, String, String) -> Void)?
+    @State private var highlightedCrumbId: UUID?
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -238,6 +339,28 @@ struct BreadcrumbBar: View {
                     .buttonStyle(.plain)
                     .foregroundStyle(index == breadcrumbs.count - 1 ? .primary : .secondary)
                     .font(.caption)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(
+                        highlightedCrumbId == crumb.id
+                            ? RoundedRectangle(cornerRadius: 4).fill(Color.accentColor.opacity(0.2))
+                            : nil
+                    )
+                    .dropDestination(for: String.self) { items, _ in
+                        guard let draggedId = items.first,
+                              index < breadcrumbs.count - 1,
+                              let itemId = crumb.itemId else { return false }
+                        onMoveToFolder?(draggedId, crumb.driveId, itemId)
+                        return true
+                    } isTargeted: { targeted in
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            if targeted && index < breadcrumbs.count - 1 && crumb.itemId != nil {
+                                highlightedCrumbId = crumb.id
+                            } else if highlightedCrumbId == crumb.id {
+                                highlightedCrumbId = nil
+                            }
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 12)

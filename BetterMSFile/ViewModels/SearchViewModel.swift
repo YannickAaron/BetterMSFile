@@ -18,6 +18,11 @@ final class SearchViewModel {
     var fileTypeFilter: String?
     var modifiedAfterFilter: Date?
     var authorFilter: String?
+    var scope: SearchScope = .all {
+        didSet {
+            if query.count >= minQueryLength { searchNow() }
+        }
+    }
 
     /// Date filter presets for the UI
     var dateFilterPreset: DateFilterPreset = .anyTime {
@@ -57,6 +62,7 @@ final class SearchViewModel {
         modifiedAfterFilter = nil
         authorFilter = nil
         dateFilterPreset = .anyTime
+        scope = .all
         if query.count >= minQueryLength { searchNow() }
     }
 
@@ -76,6 +82,7 @@ final class SearchViewModel {
             let result = try await searchService.search(
                 query: query.trimmingCharacters(in: .whitespaces),
                 filters: filters,
+                scope: scope,
                 from: nextOffset
             )
             results.append(contentsOf: result.files)
@@ -121,7 +128,7 @@ final class SearchViewModel {
         )
 
         do {
-            let result = try await searchService.search(query: currentQuery, filters: filters)
+            let result = try await searchService.search(query: currentQuery, filters: filters, scope: scope)
             guard !Task.isCancelled else { return }
             results = result.files
             hasMoreResults = result.moreAvailable

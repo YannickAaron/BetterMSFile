@@ -60,6 +60,22 @@ final class FileService {
     func getDownloadURL(driveId: String, itemId: String) -> URL {
         GraphEndpoints.driveItemContent(driveId: driveId, itemId: itemId)
     }
+
+    /// Move a file to a different folder via PATCH.
+    func moveItem(driveId: String, itemId: String, toFolderId: String) async throws -> GraphDriveItem {
+        let url = GraphEndpoints.driveItem(driveId: driveId, itemId: itemId)
+        let body = MoveItemRequest(parentReference: .init(id: toFolderId))
+        return try await client.patch(url, body: body)
+    }
+}
+
+// MARK: - Move Request
+
+private struct MoveItemRequest: Encodable {
+    let parentReference: ParentRef
+    struct ParentRef: Encodable {
+        let id: String
+    }
 }
 
 // MARK: - Mapping

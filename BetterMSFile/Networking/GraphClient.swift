@@ -59,6 +59,17 @@ final class GraphClient {
         return try decoder.decode(Response.self, from: data)
     }
 
+    /// PATCH with JSON body (used for moving/updating items).
+    func patch<Body: Encodable, Response: Codable>(_ url: URL, body: Body) async throws -> Response {
+        var request = try await authenticatedRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let data = try await performRequest(request: request)
+        return try decoder.decode(Response.self, from: data)
+    }
+
     /// Get raw data (used for file downloads).
     func getData(_ url: URL) async throws -> Data {
         try await performRequest(url: url)

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FileDetailView: View {
     let file: UnifiedFile
+    var favoritesVM: FavoritesViewModel?
     var onShowInFolder: (() -> Void)?
     @State private var showCopiedFeedback = false
 
@@ -62,6 +63,19 @@ struct FileDetailView: View {
 
                 // Actions
                 VStack(spacing: 8) {
+                    // Favorite toggle
+                    if let favoritesVM {
+                        let isFav = favoritesVM.isFavorite(file)
+                        Button {
+                            favoritesVM.toggleFavorite(for: file)
+                        } label: {
+                            Label(isFav ? "Remove from Favorites" : "Add to Favorites",
+                                  systemImage: isFav ? "star.fill" : "star")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+
                     // Open in native app (if applicable)
                     if let msIcon = MSAppIcon.forFile(mimeType: file.mimeType, fileName: file.name),
                        MSAppIcon.isNativeAppAvailable(for: file) {

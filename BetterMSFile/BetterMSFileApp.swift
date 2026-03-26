@@ -19,7 +19,7 @@ struct BetterMSFileApp: App {
                     Task { await appState.updateService.checkForUpdate() }
                 }
         }
-        .modelContainer(for: UnifiedFile.self)
+        .modelContainer(for: [UnifiedFile.self, FavoriteItem.self, FileAccessRecord.self, CustomSortOrder.self])
         .commands {
             CommandGroup(replacing: .newItem) {}
 
@@ -28,6 +28,13 @@ struct BetterMSFileApp: App {
                     NotificationCenter.default.post(name: .activateSearch, object: nil)
                 }
                 .keyboardShortcut("k", modifiers: .command)
+            }
+
+            CommandMenu("File") {
+                Button("Toggle Favorite") {
+                    NotificationCenter.default.post(name: .toggleFavorite, object: nil)
+                }
+                .keyboardShortcut("d", modifiers: .command)
             }
 
             CommandMenu("Navigation") {
@@ -82,4 +89,5 @@ extension Notification.Name {
     static let activateSearch = Notification.Name("activateSearch")
     static let navigateBack = Notification.Name("navigateBack")
     static let navigateForward = Notification.Name("navigateForward")
+    static let toggleFavorite = Notification.Name("toggleFavorite")
 }

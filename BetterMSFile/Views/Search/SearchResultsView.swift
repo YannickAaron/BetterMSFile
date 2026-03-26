@@ -2,8 +2,11 @@ import SwiftUI
 
 struct SearchResultsView: View {
     let viewModel: SearchViewModel
-    @Binding var selectedFileId: String?
+    @Binding var selectedFileIds: Set<String>
     @FocusState.Binding var isSearchFieldFocused: Bool
+    var favoritesVM: FavoritesViewModel?
+    var frecencyVM: FrecencyViewModel?
+    var availableScopes: [SearchScope] = []
     var onJumpToLocation: (UnifiedFile) -> Void
 
     var body: some View {
@@ -58,7 +61,7 @@ struct SearchResultsView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ZStack(alignment: .top) {
-                    List(selection: $selectedFileId) {
+                    List(selection: $selectedFileIds) {
                         ForEach(viewModel.results, id: \.uniqueId) { file in
                             FileRowView(file: file)
                                 .tag(file.uniqueId)
@@ -97,6 +100,7 @@ struct SearchResultsView: View {
                     } primaryAction: { ids in
                         if let id = ids.first,
                            let file = viewModel.results.first(where: { $0.uniqueId == id }) {
+                            frecencyVM?.recordAccess(for: file)
                             if let url = URL(string: file.webURL) {
                                 NSWorkspace.shared.open(url)
                             }
@@ -123,7 +127,7 @@ struct SearchResultsView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
 
-            TextField("Search files...", text: Bindable(viewModel).query)
+            TextField(viewModel.scope == .all ? "Search files..." : "Search in \(viewModel.scope.displayName)...", text: Bindable(viewModel).query)
                 .textFieldStyle(.plain)
                 .focused($isSearchFieldFocused)
 
@@ -145,6 +149,20 @@ struct SearchResultsView: View {
 
     private var filterBar: some View {
         HStack(spacing: 8) {
+            // Scope picker
+            Picker("Scope", selection: Bindable(viewModel).scope) {
+                Text("All Files").tag(SearchScope.all)
+                Text("My OneDrive").tag(SearchScope.myOneDrive)
+                if !availableScopes.isEmpty {
+                    Divider()
+                    ForEach(availableScopes, id: \.self) { scope in
+                        Text(scope.displayName).tag(scope)
+                    }
+                }
+            }
+            .pickerStyle(.menu)
+            .fixedSize()
+
             // File type filter
             Picker("Type", selection: Bindable(viewModel).fileTypeFilter) {
                 Text("Any Type").tag(nil as String?)
@@ -197,7 +215,7 @@ struct SearchResultsView: View {
     }
 
     private var hasActiveFilters: Bool {
-        viewModel.fileTypeFilter != nil || viewModel.dateFilterPreset != .anyTime
+        viewModel.fileTypeFilter != nil || viewModel.dateFilterPreset != .anyTime || viewModel.scope != .all
     }
 
     // MARK: - Context Menu
@@ -227,6 +245,13 @@ struct SearchResultsView: View {
             let pasteboard = NSPasteboard.general
             pasteboard.clearContents()
             pasteboard.setString(file.webURL, forType: .string)
+        }
+
+        if let favoritesVM {
+            Divider()
+            Button(favoritesVM.isFavorite(file) ? "Remove from Favorites" : "Add to Favorites") {
+                favoritesVM.toggleFavorite(for: file)
+            }
         }
     }
 }

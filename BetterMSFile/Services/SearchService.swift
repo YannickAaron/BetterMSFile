@@ -13,8 +13,8 @@ final class SearchService {
         let total: Int?
     }
 
-    func search(query: String, filters: SearchFilters = SearchFilters(), from: Int = 0) async throws -> SearchResult {
-        let request = buildSearchRequest(query: query, filters: filters, from: from)
+    func search(query: String, filters: SearchFilters = SearchFilters(), scope: SearchScope = .all, from: Int = 0) async throws -> SearchResult {
+        let request = buildSearchRequest(query: query, filters: filters, from: from, scope: scope)
         let response: SearchResponse = try await client.post(GraphEndpoints.search, body: request)
 
         var files: [UnifiedFile] = []
@@ -36,10 +36,21 @@ final class SearchService {
                 }
             }
         }
+
+        // Client-side filtering for OneDrive scope (Graph API doesn't support this natively)
+        if case .myOneDrive = scope {
+            let filtered = files.filter {
+                if case .oneDrive = $0.source { return true }
+                if case .shared = $0.source { return true }
+                return false
+            }
+            return SearchResult(files: filtered, moreAvailable: moreAvailable, total: total)
+        }
+
         return SearchResult(files: files, moreAvailable: moreAvailable, total: total)
     }
 
-    private func buildSearchRequest(query: String, filters: SearchFilters, from: Int = 0) -> SearchRequest {
+    private func buildSearchRequest(query: String, filters: SearchFilters, from: Int = 0, scope: SearchScope = .all) -> SearchRequest {
         // Escape special characters that could break KQL syntax
         var queryString = escapeKQL(query)
 
@@ -51,6 +62,11 @@ final class SearchService {
         // Add author filter
         if let author = filters.author {
             queryString += " author:\"\(escapeKQL(author))\""
+        }
+
+        // Add scope filter (SharePoint site scoping via KQL)
+        if case .site(let id, _) = scope {
+            queryString += " siteId:\(id)"
         }
 
         return SearchRequest(

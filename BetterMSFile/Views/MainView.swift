@@ -30,12 +30,14 @@ struct MainView: View {
     let appState: AppState
     @Environment(\.modelContext) private var modelContext
     @State private var selectedItem: SidebarItem? = .myFiles
-    @State private var selectedFileId: String?
+    @State private var selectedFileIds: Set<String> = []
     @State private var showInspector = false
     @State private var isSearching = false
     @State private var fileListVM: FileListViewModel
     @State private var sidebarVM: SidebarViewModel
     @State private var searchVM: SearchViewModel
+    @State private var favoritesVM = FavoritesViewModel()
+    @State private var frecencyVM = FrecencyViewModel()
     @FocusState private var isSearchFieldFocused: Bool
 
     init(appState: AppState) {
@@ -52,13 +54,16 @@ struct MainView: View {
             if isSearching {
                 SearchResultsView(
                     viewModel: searchVM,
-                    selectedFileId: $selectedFileId,
+                    selectedFileIds: $selectedFileIds,
                     isSearchFieldFocused: $isSearchFieldFocused,
+                    favoritesVM: favoritesVM,
+                    frecencyVM: frecencyVM,
+                    availableScopes: sidebarVM.sites.map { .site(id: $0.id, name: $0.displayName) },
                     onJumpToLocation: jumpToLocation
                 )
                 .navigationTitle("Search")
             } else {
-                FileListView(viewModel: fileListVM, selectedFileId: $selectedFileId)
+                FileListView(viewModel: fileListVM, selectedFileIds: $selectedFileIds, favoritesVM: favoritesVM, frecencyVM: frecencyVM)
                     .navigationTitle(selectedItem?.title ?? "Files")
             }
         }
@@ -101,6 +106,11 @@ struct MainView: View {
         }
         .task {
             fileListVM.setModelContext(modelContext)
+            favoritesVM.setModelContext(modelContext)
+            frecencyVM.setModelContext(modelContext)
+            favoritesVM.loadFavorites()
+            frecencyVM.loadSuggestions()
+            frecencyVM.pruneStaleRecords()
             await loadContent(for: .myFiles)
         }
         .task {
@@ -110,18 +120,25 @@ struct MainView: View {
             if let item = newValue {
                 if isSearching { dismissSearch() }
                 Task {
-                    selectedFileId = nil
+                    selectedFileIds = []
                     await loadContent(for: item)
                 }
             }
         }
-        .onChange(of: selectedFileId) { _, newValue in
-            if newValue != nil {
+        .onChange(of: selectedFileIds) { _, newValue in
+            if !newValue.isEmpty {
                 showInspector = true
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .activateSearch)) { _ in
             activateSearch()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleFavorite)) { _ in
+            if let id = selectedFileIds.first,
+               let file = fileListVM.files.first(where: { $0.uniqueId == id })
+                ?? searchVM.results.first(where: { $0.uniqueId == id }) {
+                favoritesVM.toggleFavorite(for: file)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .navigateBack)) { _ in
             if isSearching {
@@ -150,7 +167,7 @@ struct MainView: View {
     }
 
     private func activateSearch() {
-        selectedFileId = nil
+        selectedFileIds = []
         searchVM.reset()
         isSearching = true
         isSearchFieldFocused = true
@@ -166,7 +183,7 @@ struct MainView: View {
         dismissSearch()
         Task {
             await fileListVM.navigateToFile(file)
-            selectedFileId = file.uniqueId
+            selectedFileIds = [file.uniqueId]
             // Update sidebar to match the file's source
             switch file.source {
             case .oneDrive:
@@ -231,21 +248,113 @@ struct MainView: View {
                     .buttonStyle(.plain)
                 }
             }
+
         }
         .listStyle(.sidebar)
+        .safeAreaInset(edge: .top) {
+            VStack(alignment: .leading, spacing: 0) {
+                if !favoritesVM.favorites.isEmpty {
+                    sidebarSection("Favorites") {
+                        ForEach(favoritesVM.favorites) { fav in
+                            sidebarButton(label: fav.name, icon: fav.isFolder ? "folder.fill" : "star.fill") {
+                                let file = fav.toUnifiedFile()
+                                selectedItem = nil
+                                if file.isFolder {
+                                    Task { await fileListVM.navigateIntoFolder(file) }
+                                } else {
+                                    dismissSearch()
+                                    Task {
+                                        await fileListVM.navigateToFile(file)
+                                        selectedFileIds = [file.uniqueId]
+                                    }
+                                }
+                            }
+                            .contextMenu {
+                                Button("Remove from Favorites") {
+                                    favoritesVM.toggleFavorite(for: fav.toUnifiedFile())
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if !frecencyVM.suggestions.isEmpty {
+                    sidebarSection("Frequently Used") {
+                        ForEach(frecencyVM.suggestions) { record in
+                            sidebarButton(label: record.name, icon: record.isFolder ? "folder.fill" : "clock.arrow.circlepath") {
+                                let file = record.toUnifiedFile()
+                                selectedItem = nil
+                                if file.isFolder {
+                                    Task { await fileListVM.navigateIntoFolder(file) }
+                                } else {
+                                    dismissSearch()
+                                    Task {
+                                        await fileListVM.navigateToFile(file)
+                                        selectedFileIds = [file.uniqueId]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            Text("v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "")")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+                .background(.bar)
+        }
         .navigationTitle("BetterMSFile")
+    }
+
+    // MARK: - Sidebar Helpers
+
+    private func sidebarSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+                .padding(.bottom, 2)
+            content()
+        }
+    }
+
+    private func sidebarButton(label: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(label, systemImage: icon)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 4)
     }
 
     // MARK: - Inspector
 
     @ViewBuilder
     private var inspectorContent: some View {
-        if let id = selectedFileId {
-            // Look in both file list and search results
+        if selectedFileIds.count > 1 {
+            VStack(spacing: 8) {
+                Image(systemName: "doc.on.doc")
+                    .font(.largeTitle)
+                    .foregroundStyle(.secondary)
+                Text("\(selectedFileIds.count) items selected")
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxHeight: .infinity)
+        } else if let id = selectedFileIds.first {
             let file = fileListVM.files.first(where: { $0.uniqueId == id })
                 ?? searchVM.results.first(where: { $0.uniqueId == id })
             if let file {
-                FileDetailView(file: file, onShowInFolder: isSearching ? { jumpToLocation(file) } : nil)
+                FileDetailView(file: file, favoritesVM: favoritesVM, onShowInFolder: isSearching ? { jumpToLocation(file) } : nil)
             } else {
                 Text("No Selection")
                     .foregroundStyle(.secondary)
