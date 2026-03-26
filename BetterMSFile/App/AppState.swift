@@ -7,6 +7,7 @@ final class AppState {
     private(set) var fileService: FileService!
     private(set) var siteService: SiteService!
     private(set) var searchService: SearchService!
+    let updateService = UpdateService()
 
     var userName: String?
     var userEmail: String?
@@ -28,6 +29,9 @@ final class AppState {
             await fetchUserProfile()
         }
         isLoading = false
+
+        // Check for app updates (auth-independent)
+        await updateService.checkForUpdate()
     }
 
     func signIn() async {

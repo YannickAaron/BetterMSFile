@@ -1,5 +1,7 @@
 # BetterMSFile
 
+**[Visit the website](https://yannickaaron.github.io/BetterMSFile/)** — Learn more and download the app.
+
 A lightweight native macOS app for fast, unified access to Microsoft 365 files across OneDrive and SharePoint.
 
 ## Download

@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BetterMSFile — Your Microsoft 365 Files, One Native App</title>
+<meta name="description" content="A native macOS file browser for OneDrive and SharePoint. Always online, no sync issues, native Finder experience.">
+<style>
+  :root {
+    --blue-dark: #0a1628;
+    --blue-mid: #1a57e3;
+    --blue-light: #3d7ff5;
+    --blue-accent: #5b9eff;
+    --blue-glow: #6db3ff;
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-400: #94a3b8;
+    --gray-600: #475569;
+    --gray-800: #1e293b;
+    --gray-900: #0f172a;
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+    color: var(--gray-800);
+    background: var(--gray-50);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(165deg, #0a1628 0%, #0f2247 35%, #142f5e 60%, #1a3d7a 100%);
+    color: white;
+    text-align: center;
+    padding: 80px 24px 100px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(59,130,246,0.12) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 80%, rgba(99,163,255,0.08) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .hero-content { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; }
+
+  .hero-icon {
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 32px;
+    filter: drop-shadow(0 12px 40px rgba(26,87,227,0.3));
+  }
+
+  .hero h1 {
+    font-size: 52px;
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #ffffff 0%, #c5daff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero .tagline {
+    font-size: 22px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.75);
+    margin-bottom: 40px;
+    line-height: 1.5;
+  }
+
+  .download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, var(--blue-mid) 0%, var(--blue-light) 100%);
+    color: white;
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: 600;
+    padding: 16px 36px;
+    border-radius: 14px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 24px rgba(26,87,227,0.35);
+  }
+
+  .download-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(26,87,227,0.5);
+  }
+
+  .download-btn svg { width: 22px; height: 22px; fill: white; }
+
+  .hero-req {
+    margin-top: 16px;
+    font-size: 14px;
+    color: rgba(255,255,255,0.4);
+  }
+
+  /* ── PROBLEM ── */
+  .problem {
+    padding: 80px 24px;
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .problem h2 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.8px;
+    color: var(--gray-900);
+    margin-bottom: 20px;
+  }
+
+  .problem p {
+    font-size: 19px;
+    color: var(--gray-600);
+    line-height: 1.7;
+  }
+
+  /* ── FEATURES ── */
+  .features {
+    padding: 0 24px 100px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+
+  .feature-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 40px 32px;
+    border: 1px solid var(--gray-200);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(15,23,42,0.08);
+  }
+
+  .feature-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    font-size: 28px;
+  }
+
+  .feature-icon.cloud { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+  .feature-icon.finder { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); }
+  .feature-icon.edit { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
+
+  .feature-card h3 {
+    font-size: 22px;
+    font-weight: 650;
+    color: var(--gray-900);
+    margin-bottom: 12px;
+    letter-spacing: -0.3px;
+  }
+
+  .feature-card p {
+    font-size: 16px;
+    color: var(--gray-600);
+    line-height: 1.65;
+  }
+
+  /* ── SCREENSHOTS ── */
+  .screenshots {
+    padding: 80px 24px 100px;
+    background: var(--gray-100);
+  }
+
+  .screenshots h2 {
+    text-align: center;
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.8px;
+    color: var(--gray-900);
+    margin-bottom: 16px;
+  }
+
+  .screenshots .subtitle {
+    text-align: center;
+    font-size: 18px;
+    color: var(--gray-600);
+    margin-bottom: 56px;
+  }
+
+  .screenshots-grid {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+  }
+
+  .screenshot-item { text-align: center; }
+
+  .screenshot-frame {
+    background: #1e1e1e;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(15,23,42,0.18);
+  }
+
+  .screenshot-titlebar {
+    height: 36px;
+    background: linear-gradient(180deg, #3a3a3c, #2c2c2e);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 8px;
+  }
+
+  .screenshot-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+
+  .screenshot-dot.red { background: #ff5f57; }
+  .screenshot-dot.yellow { background: #febc2e; }
+  .screenshot-dot.green { background: #28c840; }
+
+  .screenshot-frame img {
+    width: 100%;
+    display: block;
+  }
+
+  .screenshot-label {
+    margin-top: 16px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--gray-600);
+  }
+
+  /* ── CTA FOOTER ── */
+  .cta {
+    padding: 100px 24px;
+    text-align: center;
+    background: linear-gradient(165deg, #0a1628 0%, #0f2247 35%, #142f5e 60%, #1a3d7a 100%);
+    color: white;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 60% 40%, rgba(59,130,246,0.1) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  .cta-content { position: relative; z-index: 1; }
+
+  .cta h2 {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    margin-bottom: 16px;
+  }
+
+  .cta p {
+    font-size: 18px;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 36px;
+  }
+
+  .cta .download-btn {
+    background: white;
+    color: var(--blue-mid);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+  }
+
+  .cta .download-btn:hover {
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  }
+
+  .cta .download-btn svg { fill: var(--blue-mid); }
+
+  footer {
+    text-align: center;
+    padding: 24px;
+    font-size: 13px;
+    color: var(--gray-400);
+    background: var(--gray-900);
+  }
+
+  footer a { color: var(--blue-accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .hero { padding: 60px 20px 72px; }
+    .hero h1 { font-size: 36px; }
+    .hero .tagline { font-size: 18px; }
+    .hero-icon { width: 100px; height: 100px; }
+    .features-grid { grid-template-columns: 1fr; gap: 20px; }
+    .screenshots-grid { grid-template-columns: 1fr; gap: 32px; }
+    .problem h2, .screenshots h2, .cta h2 { font-size: 28px; }
+    .problem p { font-size: 17px; }
+    .download-btn { font-size: 16px; padding: 14px 28px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════ HERO ════════════ -->
+<section class="hero">
+  <div class="hero-content">
+    <div class="hero-icon">
+      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" width="140" height="140">
+        <defs>
+          <filter id="fCardShadow"><feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#08112b" flood-opacity="0.52"/></filter>
+          <filter id="fDoc"><feDropShadow dx="3" dy="7" stdDeviation="10" flood-color="#0c1a3a" flood-opacity="0.20"/></filter>
+          <filter id="fDocBack"><feDropShadow dx="5" dy="8" stdDeviation="8" flood-color="#0c1a3a" flood-opacity="0.14"/></filter>
+          <filter id="fFolder"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#0c1a3a" flood-opacity="0.38"/></filter>
+          <filter id="fLens"><feDropShadow dx="4" dy="10" stdDeviation="14" flood-color="#050c1e" flood-opacity="0.60"/></filter>
+          <filter id="fHandle"><feDropShadow dx="2" dy="6" stdDeviation="7" flood-color="#050c1e" flood-opacity="0.50"/></filter>
+          <filter id="fBadge"><feDropShadow dx="2" dy="5" stdDeviation="7" flood-color="#0c1a3a" flood-opacity="0.40"/></filter>
+          <linearGradient id="gCard" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f2f5fc"/><stop offset="100%" stop-color="#d8dff0"/></linearGradient>
+          <radialGradient id="gCardSheen" cx="35%" cy="18%" r="65%"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.65"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0.00"/></radialGradient>
+          <linearGradient id="gDoc" x1="0" y1="0" x2="0.08" y2="1"><stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#edf1f9"/></linearGradient>
+          <linearGradient id="gDocBack" x1="0" y1="0" x2="0.05" y2="1"><stop offset="0%" stop-color="#f0f4fb"/><stop offset="100%" stop-color="#dde3f2"/></linearGradient>
+          <linearGradient id="gFolderBody" x1="0.05" y1="0" x2="0.92" y2="1"><stop offset="0%" stop-color="#5b9eff"/><stop offset="42%" stop-color="#3d7ff5"/><stop offset="100%" stop-color="#1a57e3"/></linearGradient>
+          <linearGradient id="gFolderTab" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0%" stop-color="#4d90f6"/><stop offset="100%" stop-color="#1e5fe2"/></linearGradient>
+          <linearGradient id="gFolderBack" x1="0" y1="0" x2="0.2" y2="1"><stop offset="0%" stop-color="#3a78f0"/><stop offset="100%" stop-color="#1248cc"/></linearGradient>
+          <linearGradient id="gFolderLeftEdge" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1a50d4" stop-opacity="0.40"/><stop offset="100%" stop-color="#1a50d4" stop-opacity="0.00"/></linearGradient>
+          <linearGradient id="gFolderTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0.00"/></linearGradient>
+          <linearGradient id="gFolderBottom" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#000000" stop-opacity="0.00"/><stop offset="100%" stop-color="#000000" stop-opacity="0.18"/></linearGradient>
+          <linearGradient id="gRing" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0%" stop-color="#3a3d46"/><stop offset="50%" stop-color="#1e2029"/><stop offset="100%" stop-color="#14161d"/></linearGradient>
+          <radialGradient id="gLens" cx="35%" cy="30%" r="68%"><stop offset="0%" stop-color="#e4f3ff"/><stop offset="28%" stop-color="#aed4f7"/><stop offset="62%" stop-color="#5fa8e8"/><stop offset="100%" stop-color="#2b75c9"/></radialGradient>
+          <radialGradient id="gLensDepth" cx="60%" cy="65%" r="50%"><stop offset="0%" stop-color="#1650a8" stop-opacity="0.45"/><stop offset="100%" stop-color="#1650a8" stop-opacity="0.00"/></radialGradient>
+          <linearGradient id="gHandle" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#44474f"/><stop offset="45%" stop-color="#25272e"/><stop offset="100%" stop-color="#16181e"/></linearGradient>
+          <linearGradient id="gFinderLeft" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1d60e8"/><stop offset="100%" stop-color="#2570f0"/></linearGradient>
+          <linearGradient id="gFinderRight" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#4592ff"/><stop offset="100%" stop-color="#5aa8ff"/></linearGradient>
+          <linearGradient id="gSPBack" x1="0" y1="0" x2="0.7" y2="1"><stop offset="0%" stop-color="#0f8a8f"/><stop offset="100%" stop-color="#076b70"/></linearGradient>
+          <radialGradient id="gSPBubble" cx="38%" cy="35%" r="62%"><stop offset="0%" stop-color="#4ce8cb"/><stop offset="100%" stop-color="#1fc9ae"/></radialGradient>
+          <linearGradient id="gOD1" x1="0" y1="0.5" x2="1" y2="1"><stop offset="0%" stop-color="#3fa9f8"/><stop offset="100%" stop-color="#1478e8"/></linearGradient>
+          <linearGradient id="gOD2" x1="0" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="#62bcff"/><stop offset="100%" stop-color="#2590f5"/></linearGradient>
+          <clipPath id="cpSP"><rect x="0" y="0" width="52" height="52" rx="11"/></clipPath>
+          <clipPath id="cpFolder"><path d="M82,208 L428,208 Q442,208 442,222 L442,402 Q442,416 428,416 L96,416 Q82,416 82,402 Z"/></clipPath>
+        </defs>
+        <rect x="18" y="18" width="476" height="476" rx="92" fill="url(#gCard)" filter="url(#fCardShadow)"/>
+        <rect x="18" y="18" width="476" height="476" rx="92" fill="url(#gCardSheen)"/>
+        <rect x="18" y="18" width="476" height="476" rx="92" fill="none" stroke="white" stroke-width="1.5" stroke-opacity="0.7"/>
+        <g filter="url(#fDocBack)"><rect x="180" y="58" width="196" height="224" rx="14" fill="url(#gDocBack)"/><rect x="180" y="58" width="12" height="224" rx="6" fill="#c8d0e8" opacity="0.35"/></g>
+        <g filter="url(#fDoc)"><rect x="148" y="68" width="210" height="228" rx="14" fill="url(#gDoc)"/><rect x="148" y="68" width="14" height="228" rx="7" fill="#b8c4de" opacity="0.25"/><rect x="148" y="68" width="210" height="8" rx="4" fill="white" opacity="0.80"/></g>
+        <g transform="translate(163, 105)"><g opacity="0.82"><ellipse cx="18" cy="30" rx="17" ry="13" fill="url(#gOD1)"/><rect x="2" y="22" width="30" height="14" fill="url(#gOD1)"/><ellipse cx="30" cy="23" rx="14" ry="10" fill="url(#gOD1)"/></g><ellipse cx="50" cy="36" rx="21" ry="15" fill="url(#gOD2)"/><ellipse cx="34" cy="26" rx="20" ry="16" fill="url(#gOD2)"/><ellipse cx="62" cy="30" rx="12" ry="10" fill="url(#gOD2)"/><rect x="13" y="26" width="62" height="22" fill="url(#gOD2)"/><rect x="13" y="40" width="62" height="8" rx="4" fill="url(#gOD2)"/><ellipse cx="30" cy="19" rx="12" ry="7" fill="white" opacity="0.25" transform="rotate(-22 30 19)"/><ellipse cx="52" cy="22" rx="8" ry="4.5" fill="white" opacity="0.18" transform="rotate(-18 52 22)"/></g>
+        <g transform="translate(266, 99)"><rect x="0" y="0" width="52" height="52" rx="11" fill="url(#gSPBack)" clip-path="url(#cpSP)"/><rect x="0" y="0" width="52" height="20" rx="5" fill="white" opacity="0.10"/><text x="18" y="36" font-family="'Segoe UI','Arial Black',Arial,sans-serif" font-weight="800" font-size="28" fill="white" letter-spacing="-1">S</text><circle cx="41" cy="41" r="19" fill="url(#gSPBubble)"/><circle cx="41" cy="41" r="13" fill="none" stroke="white" stroke-width="2" stroke-opacity="0.20"/><ellipse cx="36" cy="35" rx="7" ry="4.5" fill="white" opacity="0.28" transform="rotate(-30 36 35)"/></g>
+        <rect x="172" y="200" width="148" height="7" rx="3.5" fill="#bcc8e0" opacity="0.85"/>
+        <rect x="172" y="216" width="112" height="7" rx="3.5" fill="#bcc8e0" opacity="0.65"/>
+        <path d="M370,195 L428,195 Q442,195 442,209 L442,260 L370,260 Z" fill="url(#gFolderBack)" filter="url(#fFolder)"/>
+        <g filter="url(#fFolder)"><path d="M82,208 L82,190 Q82,177 95,177 L202,177 Q213,177 218,168 L228,152 Q233,142 244,142 L272,142 Q284,142 284,155 L284,177 L284,208 Z" fill="url(#gFolderTab)"/><path d="M82,208 L428,208 Q442,208 442,222 L442,402 Q442,416 428,416 L96,416 Q82,416 82,402 Z" fill="url(#gFolderBody)"/></g>
+        <g clip-path="url(#cpFolder)"><rect x="82" y="208" width="360" height="40" fill="url(#gFolderTop)"/><rect x="82" y="208" width="90" height="210" fill="url(#gFolderLeftEdge)"/><rect x="82" y="350" width="360" height="66" fill="url(#gFolderBottom)"/><path d="M82,208 L320,208 L260,290 L82,290 Z" fill="white" opacity="0.04"/></g>
+        <path d="M82,195 L284,195 L284,208 L82,208 Z" fill="white" opacity="0.06"/>
+        <path d="M95,180 L268,180" stroke="white" stroke-width="2" stroke-opacity="0.18" stroke-linecap="round"/>
+        <g filter="url(#fHandle)"><line x1="356" y1="340" x2="426" y2="412" stroke="url(#gHandle)" stroke-width="34" stroke-linecap="round"/><line x1="349" y1="334" x2="419" y2="406" stroke="white" stroke-width="5" stroke-linecap="round" stroke-opacity="0.10"/></g>
+        <g filter="url(#fLens)"><circle cx="300" cy="280" r="78" fill="url(#gRing)"/><circle cx="300" cy="280" r="78" fill="none" stroke="white" stroke-width="3" stroke-opacity="0.10"/><circle cx="300" cy="280" r="79" fill="none" stroke="white" stroke-width="1.5" stroke-opacity="0.07"/><circle cx="300" cy="280" r="57" fill="url(#gLens)"/><circle cx="300" cy="280" r="57" fill="url(#gLensDepth)"/><ellipse cx="276" cy="255" rx="25" ry="15" fill="white" opacity="0.50" transform="rotate(-42 276 255)"/><ellipse cx="290" cy="244" rx="12" ry="7" fill="white" opacity="0.30" transform="rotate(-40 290 244)"/><circle cx="268" cy="250" r="4.5" fill="white" opacity="0.55"/><ellipse cx="322" cy="308" rx="16" ry="9" fill="#9eceff" opacity="0.28" transform="rotate(-42 322 308)"/><circle cx="300" cy="280" r="60" fill="none" stroke="#08101f" stroke-width="4" stroke-opacity="0.25"/></g>
+        <g transform="translate(102, 310)" filter="url(#fBadge)"><clipPath id="cpFinderInner"><rect x="0" y="0" width="80" height="80" rx="16"/></clipPath><rect x="0" y="0" width="80" height="80" rx="16" fill="#1e63ec"/><g clip-path="url(#cpFinderInner)"><rect x="0" y="0" width="40" height="80" fill="url(#gFinderLeft)"/><rect x="40" y="0" width="40" height="80" fill="url(#gFinderRight)"/><rect x="37" y="0" width="3" height="80" fill="#0d40bb" opacity="0.30"/><rect x="0" y="0" width="80" height="18" rx="0" fill="white" opacity="0.10"/><ellipse cx="22" cy="29" rx="11" ry="12" fill="white"/><circle cx="24" cy="31" r="6.5" fill="#1a1f2e"/><circle cx="26" cy="28.5" r="2.5" fill="white"/><circle cx="24" cy="31" r="6.5" fill="none" stroke="#2a3050" stroke-width="1" stroke-opacity="0.4"/><ellipse cx="58" cy="29" rx="11" ry="12" fill="white"/><circle cx="60" cy="31" r="6.5" fill="#1a1f2e"/><circle cx="62" cy="28.5" r="2.5" fill="white"/><circle cx="60" cy="31" r="6.5" fill="none" stroke="#2a3050" stroke-width="1" stroke-opacity="0.4"/><path d="M15,52 Q40,72 65,52" stroke="white" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M15,52 Q40,72 65,52" stroke="#0840bb" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.25" transform="translate(0,3)"/></g><rect x="0" y="0" width="80" height="80" rx="16" fill="none" stroke="white" stroke-width="1.5" stroke-opacity="0.25"/></g>
+      </svg>
+    </div>
+
+    <h1>BetterMSFile</h1>
+    <p class="tagline">Your Microsoft 365 files. One native app. Always online.</p>
+
+    <a href="https://github.com/YannickAaron/BetterMSFile/releases/latest" class="download-btn">
+      <!-- Apple logo -->
+      <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-27.1-46.9-42.8-83.7-47.4-35.4-4.5-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184 4 273.5c0 26.2 4.8 53.3 14.4 81.2 12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-62.1 24-72.5-24 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+      Download for macOS
+    </a>
+    <p class="hero-req">Requires macOS 26.2+ &middot; Microsoft 365 work or school account</p>
+  </div>
+</section>
+
+<!-- ════════════ PROBLEM ════════════ -->
+<section class="problem">
+  <h2>OneDrive & SharePoint are a mess.</h2>
+  <p>
+    Files scattered across OneDrive, SharePoint sites, and Teams channels.
+    Sync conflicts when you forget to close a file. Searching through endless team subfolders
+    just to find that one document. BetterMSFile brings it all together.
+  </p>
+</section>
+
+<!-- ════════════ FEATURES ════════════ -->
+<section class="features">
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon cloud">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+      </div>
+      <h3>Always Online</h3>
+      <p>Files stream directly from the cloud. No syncing, no conflicts, no waiting for downloads. Your data is always live and up to date.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon finder">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      </div>
+      <h3>Native Finder Feeling</h3>
+      <p>Built with SwiftUI from the ground up. Sidebar, file list, detail panel &mdash; it looks and feels like browsing your Mac, not a web app.</p>
+    </div>
+
+    <div class="feature-card">
+      <div class="feature-icon edit">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </div>
+      <h3>Open &amp; Edit Directly</h3>
+      <p>Click any file to open it directly in its online editor. Word, Excel, PowerPoint &mdash; no local copies, no version confusion.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ SCREENSHOTS ════════════ -->
+<section class="screenshots">
+  <h2>See it in action</h2>
+  <p class="subtitle">Browse SharePoint sites and search across all your files &mdash; from one window.</p>
+
+  <div class="screenshots-grid">
+    <div class="screenshot-item">
+      <div class="screenshot-frame">
+        <div class="screenshot-titlebar">
+          <span class="screenshot-dot red"></span>
+          <span class="screenshot-dot yellow"></span>
+          <span class="screenshot-dot green"></span>
+        </div>
+        <img src="images/screenshot-browse.png" alt="BetterMSFile browsing SharePoint folders with native Finder-like sidebar" loading="lazy">
+      </div>
+      <p class="screenshot-label">Browse SharePoint sites like a Finder window</p>
+    </div>
+
+    <div class="screenshot-item">
+      <div class="screenshot-frame">
+        <div class="screenshot-titlebar">
+          <span class="screenshot-dot red"></span>
+          <span class="screenshot-dot yellow"></span>
+          <span class="screenshot-dot green"></span>
+        </div>
+        <img src="images/screenshot-search.png" alt="BetterMSFile global search across all Microsoft 365 files" loading="lazy">
+      </div>
+      <p class="screenshot-label">Search across all files instantly</p>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ CTA ════════════ -->
+<section class="cta">
+  <div class="cta-content">
+    <h2>Stop searching. Start finding.</h2>
+    <p>Free and open source. Download now and take control of your Microsoft 365 files.</p>
+
+    <a href="https://github.com/YannickAaron/BetterMSFile/releases/latest" class="download-btn">
+      <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-27.1-46.9-42.8-83.7-47.4-35.4-4.5-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184 4 273.5c0 26.2 4.8 53.3 14.4 81.2 12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-62.1 24-72.5-24 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+      Download for macOS
+    </a>
+  </div>
+</section>
+
+<footer>
+  <p>BetterMSFile &middot; <a href="https://github.com/YannickAaron/BetterMSFile">View on GitHub</a></p>
+</footer>
+
+</body>
+</html>

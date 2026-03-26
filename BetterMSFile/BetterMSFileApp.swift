@@ -15,6 +15,8 @@ struct BetterMSFileApp: App {
 .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
                     // Background refresh when app becomes active
                     Task { await appState.backgroundRefresh() }
+                    // Check for updates (debounced inside UpdateService)
+                    Task { await appState.updateService.checkForUpdate() }
                 }
         }
         .modelContainer(for: UnifiedFile.self)

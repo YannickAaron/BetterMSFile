@@ -217,6 +217,20 @@ struct MainView: View {
                     }
                 }
             }
+
+            if appState.updateService.updateAvailable {
+                Section {
+                    Button {
+                        if let url = appState.updateService.downloadURL {
+                            NSWorkspace.shared.open(url)
+                        }
+                    } label: {
+                        Label("Update Available", systemImage: "arrow.down.circle")
+                            .foregroundStyle(.blue)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
         .listStyle(.sidebar)
         .navigationTitle("BetterMSFile")
