@@ -121,4 +121,5 @@ extension Notification.Name {
     static let createNewFolder = Notification.Name("createNewFolder")
     static let renameSelectedFile = Notification.Name("renameSelectedFile")
     static let quickLookFile = Notification.Name("quickLookFile")
+    static let openInNewTab = Notification.Name("openInNewTab")
 }

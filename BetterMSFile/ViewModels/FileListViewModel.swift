@@ -143,6 +143,14 @@ final class FileListViewModel {
     }
 
     /// Navigate to a file's parent folder (jump to location from search).
+    /// Direct folder load for tab restoration — skips breadcrumb setup.
+    func loadFolderDirect(driveId: String, itemId: String, source: FileSource, cacheKey: String) async {
+        await loadWithCache(
+            cacheKey: cacheKey,
+            fetch: { try await self.fileService.fetchFolderContents(driveId: driveId, itemId: itemId, source: source) }
+        )
+    }
+
     func navigateToFile(_ file: UnifiedFile) async {
         guard !file.driveId.isEmpty else { return }
 

@@ -463,6 +463,9 @@ struct FileListView: View {
             Button("Open Folder") {
                 Task { await viewModel.navigateIntoFolder(file) }
             }
+            Button("Open in New Tab") {
+                NotificationCenter.default.post(name: .openInNewTab, object: file)
+            }
         } else {
             // Open in native app if applicable
             if let msIcon = MSAppIcon.forFile(mimeType: file.mimeType, fileName: file.name),

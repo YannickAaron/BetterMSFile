@@ -40,6 +40,8 @@ struct MainView: View {
     @State private var frecencyVM = FrecencyViewModel()
     @State private var loadContentTask: Task<Void, Never>?
     @FocusState private var isSearchFieldFocused: Bool
+    @State private var tabs: [FileTab] = [FileTab(name: "My Files", breadcrumbs: [], cacheKey: nil)]
+    @State private var activeTabId: UUID?
 
     init(appState: AppState) {
         self.appState = appState
@@ -64,8 +66,18 @@ struct MainView: View {
                 )
                 .navigationTitle("Search")
             } else {
-                FileListView(viewModel: fileListVM, selectedFileIds: $selectedFileIds, favoritesVM: favoritesVM, frecencyVM: frecencyVM)
-                    .navigationTitle(selectedItem?.title ?? "Files")
+                VStack(spacing: 0) {
+                    if tabs.count > 1 {
+                        FileTabBarView(
+                            tabs: $tabs,
+                            activeTabId: $activeTabId,
+                            onSelect: { tab in switchToTab(tab) },
+                            onClose: { tab in closeTab(tab) }
+                        )
+                    }
+                    FileListView(viewModel: fileListVM, selectedFileIds: $selectedFileIds, favoritesVM: favoritesVM, frecencyVM: frecencyVM)
+                }
+                .navigationTitle(selectedItem?.title ?? "Files")
             }
         }
         .inspector(isPresented: $showInspector) {
@@ -125,6 +137,7 @@ struct MainView: View {
             favoritesVM.loadFavorites()
             frecencyVM.loadSuggestions()
             frecencyVM.pruneStaleRecords()
+            if activeTabId == nil { activeTabId = tabs.first?.id }
             await loadContent(for: .myFiles)
         }
         .task {
@@ -146,6 +159,15 @@ struct MainView: View {
                 showInspector = true
             }
         }
+        .onChange(of: fileListVM.breadcrumbs.count) { _, _ in
+            // Keep active tab name in sync with navigation
+            if let activeId = activeTabId,
+               let index = tabs.firstIndex(where: { $0.id == activeId }) {
+                tabs[index].name = fileListVM.breadcrumbs.last?.name ?? "My Files"
+                tabs[index].breadcrumbs = fileListVM.breadcrumbs
+                tabs[index].cacheKey = fileListVM.currentCacheKey
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .activateSearch)) { _ in
             activateSearch()
         }
@@ -161,6 +183,11 @@ struct MainView: View {
                 dismissSearch()
             } else {
                 Task { await fileListVM.navigateBack() }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openInNewTab)) { notification in
+            if let file = notification.object as? UnifiedFile, file.isFolder {
+                openFolderInNewTab(file)
             }
         }
         .onKeyPress(.escape) {
@@ -424,6 +451,89 @@ struct MainView: View {
                 .foregroundStyle(.secondary)
                 .frame(maxHeight: .infinity)
         }
+    }
+
+    // MARK: - Tabs
+
+    private func switchToTab(_ tab: FileTab) {
+        // Save current tab state before switching
+        saveCurrentTabState()
+        activeTabId = tab.id
+
+        // Restore the tab's location
+        if !tab.breadcrumbs.isEmpty {
+            // Navigate to the tab's last breadcrumb
+            let lastCrumb = tab.breadcrumbs.last!
+            selectedFileIds = []
+            loadContentTask?.cancel()
+            loadContentTask = Task {
+                fileListVM.setLoading()
+                if let itemId = lastCrumb.itemId {
+                    // Restore breadcrumbs and load folder
+                    fileListVM.breadcrumbs = tab.breadcrumbs
+                    let cacheKey = "folder_\(lastCrumb.driveId)_\(itemId)"
+                    await fileListVM.loadFolderDirect(
+                        driveId: lastCrumb.driveId,
+                        itemId: itemId,
+                        source: lastCrumb.source,
+                        cacheKey: cacheKey
+                    )
+                } else {
+                    // Root level
+                    switch lastCrumb.source {
+                    case .oneDrive:
+                        selectedItem = .myFiles
+                        await fileListVM.loadMyDriveRoot()
+                    case .shared:
+                        selectedItem = .shared
+                        await fileListVM.loadSharedWithMe()
+                    case .sharePoint:
+                        await fileListVM.loadDriveRoot(driveId: lastCrumb.driveId, source: lastCrumb.source)
+                    }
+                }
+            }
+        } else {
+            // Default: load My Files
+            selectedFileIds = []
+            loadContentTask?.cancel()
+            loadContentTask = Task {
+                await loadContent(for: .myFiles)
+            }
+        }
+    }
+
+    private func closeTab(_ tab: FileTab) {
+        guard tabs.count > 1 else { return }
+        let wasActive = activeTabId == tab.id
+        tabs.removeAll { $0.id == tab.id }
+
+        if wasActive {
+            let newActive = tabs.first!
+            activeTabId = newActive.id
+            switchToTab(newActive)
+        }
+    }
+
+    private func saveCurrentTabState() {
+        guard let activeId = activeTabId,
+              let index = tabs.firstIndex(where: { $0.id == activeId }) else { return }
+        tabs[index].breadcrumbs = fileListVM.breadcrumbs
+        tabs[index].cacheKey = fileListVM.currentCacheKey
+        tabs[index].name = fileListVM.breadcrumbs.last?.name ?? "My Files"
+    }
+
+    func openFolderInNewTab(_ file: UnifiedFile) {
+        guard file.isFolder else { return }
+        saveCurrentTabState()
+
+        let source = file.source
+        let newBreadcrumbs = fileListVM.breadcrumbs + [
+            FileListViewModel.BreadcrumbItem(name: file.name, driveId: file.driveId, itemId: file.itemId, source: source)
+        ]
+        let newTab = FileTab(name: file.name, breadcrumbs: newBreadcrumbs, cacheKey: "folder_\(file.driveId)_\(file.itemId)")
+        tabs.append(newTab)
+        activeTabId = newTab.id
+        switchToTab(newTab)
     }
 
     // MARK: - Content Loading
