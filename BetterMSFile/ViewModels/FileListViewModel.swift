@@ -1,12 +1,20 @@
 import Foundation
 import SwiftData
 
+enum FileViewMode: String {
+    case list
+    case grid
+}
+
 @MainActor @Observable
 final class FileListViewModel {
     private let fileService: FileService
     private var modelContext: ModelContext?
 
     var files: [UnifiedFile] = []
+    var viewMode: FileViewMode {
+        didSet { UserDefaults.standard.set(viewMode.rawValue, forKey: "fileViewMode") }
+    }
     var isLoading = false
     var isRefreshing = false
     var errorMessage: String?
@@ -42,6 +50,8 @@ final class FileListViewModel {
 
     init(fileService: FileService) {
         self.fileService = fileService
+        let stored = UserDefaults.standard.string(forKey: "fileViewMode") ?? "list"
+        self.viewMode = FileViewMode(rawValue: stored) ?? .list
     }
 
     func setModelContext(_ context: ModelContext) {

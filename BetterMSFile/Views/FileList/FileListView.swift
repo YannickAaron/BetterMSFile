@@ -134,6 +134,28 @@ struct FileListView: View {
                     )
                 }
                 Spacer()
+                // View mode toggle
+                HStack(spacing: 2) {
+                    Button {
+                        viewModel.viewMode = .list
+                    } label: {
+                        Image(systemName: "list.bullet")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(viewModel.viewMode == .list ? .primary : .secondary)
+
+                    Button {
+                        viewModel.viewMode = .grid
+                    } label: {
+                        Image(systemName: "square.grid.2x2")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(viewModel.viewMode == .grid ? .primary : .secondary)
+                }
+                .padding(.trailing, 4)
+
                 if viewModel.hasCustomOrder {
                     Button {
                         viewModel.resetSortOrder()
@@ -208,8 +230,31 @@ struct FileListView: View {
                     }
                 }
             }
+        } else if viewModel.viewMode == .grid {
+            populatedGridView
         } else {
             populatedFileList
+        }
+    }
+
+    @ViewBuilder
+    private var populatedGridView: some View {
+        ZStack(alignment: .top) {
+            FileGridView(
+                files: viewModel.files,
+                selectedFileIds: $selectedFileIds,
+                onDoubleClick: { file in handleDoubleClick(file) },
+                contextMenuItems: { file in AnyView(contextMenuItems(for: file)) }
+            )
+
+            if viewModel.isLoading || viewModel.isRefreshing {
+                ProgressView()
+                    .controlSize(.small)
+                    .padding(6)
+                    .background(.regularMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .padding(4)
+            }
         }
     }
 
