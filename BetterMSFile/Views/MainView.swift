@@ -408,6 +408,7 @@ struct MainView: View {
                 FileDetailView(
                     file: file,
                     favoritesVM: favoritesVM,
+                    fileService: appState.fileService,
                     onShowInFolder: isSearching ? { jumpToLocation(file) } : nil,
                     onQuickLook: !file.isFolder ? {
                         NotificationCenter.default.post(name: .quickLookFile, object: file.uniqueId)

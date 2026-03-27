@@ -3,6 +3,7 @@ import SwiftUI
 struct FileDetailView: View {
     let file: UnifiedFile
     var favoritesVM: FavoritesViewModel?
+    var fileService: FileService?
     var onShowInFolder: (() -> Void)?
     var onQuickLook: (() -> Void)?
     @State private var showCopiedFeedback = false
@@ -130,6 +131,12 @@ struct FileDetailView: View {
                         }
                         .buttonStyle(.bordered)
                     }
+                }
+
+                // Version history (files only)
+                if !file.isFolder, let fileService {
+                    Divider()
+                    FileVersionHistoryView(file: file, fileService: fileService)
                 }
             }
             .padding()

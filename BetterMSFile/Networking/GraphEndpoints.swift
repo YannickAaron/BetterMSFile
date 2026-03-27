@@ -45,6 +45,16 @@ enum GraphEndpoints {
         url("/drives/\(driveId)/items/\(itemId)/thumbnails")
     }
 
+    // MARK: - Versions
+
+    static func driveItemVersions(driveId: String, itemId: String) -> URL {
+        url("/drives/\(driveId)/items/\(itemId)/versions")
+    }
+
+    static func driveItemVersionContent(driveId: String, itemId: String, versionId: String) -> URL {
+        url("/drives/\(driveId)/items/\(itemId)/versions/\(versionId)/content")
+    }
+
     // MARK: - Upload
 
     /// Simple upload endpoint for files <4MB.

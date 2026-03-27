@@ -82,6 +82,15 @@ struct GraphThumbnail: Codable {
     let height: Int?
 }
 
+// MARK: - Versions
+
+struct GraphDriveItemVersion: Codable {
+    let id: String
+    let lastModifiedDateTime: String?
+    let size: Int64?
+    let lastModifiedBy: GraphIdentitySet?
+}
+
 // MARK: - SharePoint Site
 
 struct GraphSite: Codable {

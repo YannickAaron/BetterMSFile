@@ -86,6 +86,21 @@ final class FileService {
         let body = MoveItemRequest(parentReference: .init(id: toFolderId))
         return try await client.patch(url, body: body)
     }
+    // MARK: - Versions
+
+    /// Fetch version history for a file.
+    func fetchVersions(driveId: String, itemId: String) async throws -> [GraphDriveItemVersion] {
+        let url = GraphEndpoints.driveItemVersions(driveId: driveId, itemId: itemId)
+        let collection: GraphCollection<GraphDriveItemVersion> = try await client.get(url)
+        return collection.value
+    }
+
+    /// Download a specific version of a file to a temporary location.
+    func downloadVersion(driveId: String, itemId: String, versionId: String) async throws -> URL {
+        let url = GraphEndpoints.driveItemVersionContent(driveId: driveId, itemId: itemId, versionId: versionId)
+        return try await client.downloadFile(url)
+    }
+
     // MARK: - Upload
 
     /// Simple upload for files under 4MB.
