@@ -37,6 +37,11 @@ struct BetterMSFileApp: App {
                 }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
 
+                Button("Rename") {
+                    NotificationCenter.default.post(name: .renameSelectedFile, object: nil)
+                }
+                .keyboardShortcut(.return, modifiers: [])
+
                 Button("Toggle Favorite") {
                     NotificationCenter.default.post(name: .toggleFavorite, object: nil)
                 }
@@ -114,4 +119,5 @@ extension Notification.Name {
     static let navigateForward = Notification.Name("navigateForward")
     static let toggleFavorite = Notification.Name("toggleFavorite")
     static let createNewFolder = Notification.Name("createNewFolder")
+    static let renameSelectedFile = Notification.Name("renameSelectedFile")
 }

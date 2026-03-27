@@ -2,6 +2,24 @@ import SwiftUI
 
 struct FileRowView: View {
     let file: UnifiedFile
+    let isRenaming: Bool
+    @Binding var renamingText: String
+    var onRenameCommit: (() -> Void)?
+    var onRenameCancel: (() -> Void)?
+
+    init(
+        file: UnifiedFile,
+        isRenaming: Bool = false,
+        renamingText: Binding<String> = .constant(""),
+        onRenameCommit: (() -> Void)? = nil,
+        onRenameCancel: (() -> Void)? = nil
+    ) {
+        self.file = file
+        self.isRenaming = isRenaming
+        self._renamingText = renamingText
+        self.onRenameCommit = onRenameCommit
+        self.onRenameCancel = onRenameCancel
+    }
 
     var body: some View {
         HStack(spacing: 10) {
@@ -9,8 +27,20 @@ struct FileRowView: View {
                 .frame(width: 28, height: 28)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(file.name)
-                    .lineLimit(1)
+                if isRenaming {
+                    TextField("Name", text: $renamingText)
+                        .textFieldStyle(.plain)
+                        .lineLimit(1)
+                        .onSubmit {
+                            onRenameCommit?()
+                        }
+                        .onExitCommand {
+                            onRenameCancel?()
+                        }
+                } else {
+                    Text(file.name)
+                        .lineLimit(1)
+                }
 
                 HStack(spacing: 8) {
                     if !file.isFolder {

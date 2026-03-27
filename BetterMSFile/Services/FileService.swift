@@ -86,6 +86,18 @@ final class FileService {
         let body = MoveItemRequest(parentReference: .init(id: toFolderId))
         return try await client.patch(url, body: body)
     }
+    /// Rename a file or folder via PATCH.
+    func renameItem(driveId: String, itemId: String, newName: String) async throws -> GraphDriveItem {
+        let url = GraphEndpoints.driveItem(driveId: driveId, itemId: itemId)
+        let body = RenameItemRequest(name: newName)
+        return try await client.patch(url, body: body)
+    }
+}
+
+// MARK: - Rename Request
+
+private struct RenameItemRequest: Encodable {
+    let name: String
 }
 
 // MARK: - Create Folder Request

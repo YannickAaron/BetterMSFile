@@ -351,6 +351,29 @@ final class FileListViewModel {
         if let firstError { throw firstError }
     }
 
+    // MARK: - Rename
+
+    /// Rename a file or folder. Updates the local list optimistically and reverts on failure.
+    func renameFile(_ uniqueId: String, to newName: String) async throws {
+        guard let index = files.firstIndex(where: { $0.uniqueId == uniqueId }) else { return }
+        let file = files[index]
+        let oldName = file.name
+
+        // Optimistic update
+        file.name = newName
+        sortFiles()
+
+        do {
+            _ = try await fileService.renameItem(driveId: file.driveId, itemId: file.itemId, newName: newName)
+            invalidateCache(for: currentCacheKey)
+        } catch {
+            // Revert on failure
+            file.name = oldName
+            sortFiles()
+            throw error
+        }
+    }
+
     // MARK: - Drag-and-Drop
 
     /// Optimistic removal — called before the API move call.

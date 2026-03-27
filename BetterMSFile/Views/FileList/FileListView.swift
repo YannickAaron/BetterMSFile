@@ -14,6 +14,8 @@ struct FileListView: View {
     @State private var showDeleteConfirmation = false
     @State private var itemsToDelete: Set<String> = []
     @State private var operationError: String?
+    @State private var renamingFileId: String?
+    @State private var renamingText = ""
 
     private var selectedFile: UnifiedFile? {
         guard let id = selectedFileIds.first else { return nil }
@@ -22,172 +24,10 @@ struct FileListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Breadcrumb bar
-            if viewModel.breadcrumbs.count > 1 || viewModel.hasCustomOrder || viewModel.canCreateFolder {
-                HStack {
-                    if viewModel.breadcrumbs.count > 1 {
-                        BreadcrumbBar(
-                            breadcrumbs: viewModel.breadcrumbs,
-                            onSelect: { crumb in
-                                Task { await viewModel.navigateToBreadcrumb(crumb) }
-                            },
-                            onMoveToFolder: { draggedId, driveId, folderId in
-                                Task {
-                                    try? await viewModel.moveFileToBreadcrumbFolder(
-                                        fileId: draggedId, driveId: driveId, folderId: folderId
-                                    )
-                                }
-                            }
-                        )
-                    }
-                    Spacer()
-                    if viewModel.hasCustomOrder {
-                        Button {
-                            viewModel.resetSortOrder()
-                        } label: {
-                            Label("Reset Order", systemImage: "arrow.up.arrow.down")
-                                .font(.caption)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.secondary)
-                        .padding(.trailing, 4)
-                    }
-                    if viewModel.canCreateFolder {
-                        Button {
-                            newFolderName = ""
-                            showNewFolderAlert = true
-                        } label: {
-                            Label("New Folder", systemImage: "folder.badge.plus")
-                                .font(.caption)
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.secondary)
-                        .padding(.trailing, 12)
-                    }
-                }
-                .background(.bar)
-            }
-
-            // File list
-            if viewModel.isLoading && viewModel.files.isEmpty {
-                VStack(spacing: 8) {
-                    ProgressView()
-                    Text("Loading...")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let error = viewModel.errorMessage {
-                VStack(spacing: 12) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
-                    Text(error)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if viewModel.files.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "folder")
-                        .font(.largeTitle)
-                        .foregroundStyle(.secondary)
-                    Text("This folder is empty")
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contextMenu {
-                    if viewModel.canCreateFolder {
-                        Button("New Folder") {
-                            newFolderName = ""
-                            showNewFolderAlert = true
-                        }
-                    }
-                }
-            } else {
-                ZStack(alignment: .top) {
-                    List(viewModel.files, id: \.uniqueId, selection: $selectedFileIds) { file in
-                        FileRowView(file: file)
-                            .tag(file.uniqueId)
-                            .listRowBackground(dropHighlight(for: file))
-                            .draggable(file.uniqueId)
-                            .dropDestination(for: String.self) { items, _ in
-                                guard let draggedId = items.first, draggedId != file.uniqueId else { return false }
-                                // If dragged item is in selection, operate on all selected items
-                                let idsToMove = selectedFileIds.contains(draggedId) ? selectedFileIds : [draggedId]
-                                if file.isFolder {
-                                    Task {
-                                        for id in idsToMove where id != file.uniqueId {
-                                            await moveFile(draggedId: id, intoFolder: file)
-                                        }
-                                    }
-                                } else {
-                                    viewModel.reorderFile(draggedId: draggedId, targetId: file.uniqueId)
-                                }
-                                dropTargetId = nil
-                                return true
-                            } isTargeted: { targeted in
-                                withAnimation(.easeInOut(duration: 0.15)) {
-                                    if targeted {
-                                        dropTargetId = file.uniqueId
-                                    } else if dropTargetId == file.uniqueId {
-                                        dropTargetId = nil
-                                    }
-                                }
-                            }
-                    }
-                    .onKeyPress(.return) {
-                        if let file = selectedFile {
-                            handleDoubleClick(file)
-                        }
-                        return .handled
-                    }
-                    .onKeyPress(.escape) {
-                        Task { await viewModel.navigateBack() }
-                        return .handled
-                    }
-                    .onKeyPress(.space) {
-                        if let file = selectedFile, !file.isFolder {
-                            Task { await quickLook(file) }
-                        }
-                        return .handled
-                    }
-                    .contextMenu(forSelectionType: String.self) { ids in
-                        if let id = ids.first,
-                           let file = viewModel.files.first(where: { $0.uniqueId == id }) {
-                            contextMenuItems(for: file)
-                        }
-                    } primaryAction: { ids in
-                        if let id = ids.first,
-                           let file = viewModel.files.first(where: { $0.uniqueId == id }) {
-                            handleDoubleClick(file)
-                        }
-                    }
-
-                    if viewModel.isLoading || viewModel.isRefreshing {
-                        ProgressView()
-                            .controlSize(.small)
-                            .padding(6)
-                            .background(.regularMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
-                            .padding(4)
-                    }
-
-                    if isDownloading {
-                        HStack {
-                            Spacer()
-                            Label("Downloading...", systemImage: "arrow.down.circle")
-                                .padding(8)
-                                .background(.regularMaterial)
-                                .clipShape(Capsule())
-                            Spacer()
-                        }
-                        .padding(.top, 8)
-                    }
-                }
-            }
+            breadcrumbBar
+            fileListContent
         }
         .onChange(of: quickLookURL) { _, url in
-            // Quick Look is handled by opening the temp file directly
             if let url {
                 NSWorkspace.shared.open(url)
                 quickLookURL = nil
@@ -195,23 +35,7 @@ struct FileListView: View {
         }
         .alert("New Folder", isPresented: $showNewFolderAlert) {
             TextField("Folder name", text: $newFolderName)
-            Button("Create") {
-                let name = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !name.isEmpty else { return }
-                // Validate against characters invalid in OneDrive/SharePoint
-                let invalidChars = CharacterSet(charactersIn: "\"*:<>?/\\|#%")
-                if name.rangeOfCharacter(from: invalidChars) != nil {
-                    operationError = "Folder names cannot contain: \" * : < > ? / \\ | # %"
-                    return
-                }
-                Task {
-                    do {
-                        try await viewModel.createFolder(name: name)
-                    } catch {
-                        operationError = error.localizedDescription
-                    }
-                }
-            }
+            Button("Create") { createNewFolder() }
             Button("Cancel", role: .cancel) {}
         }
         .confirmationDialog(
@@ -219,17 +43,7 @@ struct FileListView: View {
             isPresented: $showDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Delete", role: .destructive) {
-                let ids = itemsToDelete
-                Task {
-                    do {
-                        try await viewModel.deleteItems(ids)
-                        selectedFileIds.subtract(ids)
-                    } catch {
-                        operationError = error.localizedDescription
-                    }
-                }
-            }
+            Button("Delete", role: .destructive) { performDelete() }
             Button("Cancel", role: .cancel) {}
         }
         .alert("Error", isPresented: .init(
@@ -245,6 +59,198 @@ struct FileListView: View {
                 newFolderName = ""
                 showNewFolderAlert = true
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .renameSelectedFile)) { _ in
+            if selectedFileIds.count == 1, let file = selectedFile {
+                startRename(file)
+            }
+        }
+    }
+
+    // MARK: - Breadcrumb Bar
+
+    @ViewBuilder
+    private var breadcrumbBar: some View {
+        if viewModel.breadcrumbs.count > 1 || viewModel.hasCustomOrder || viewModel.canCreateFolder {
+            HStack {
+                if viewModel.breadcrumbs.count > 1 {
+                    BreadcrumbBar(
+                        breadcrumbs: viewModel.breadcrumbs,
+                        onSelect: { crumb in
+                            Task { await viewModel.navigateToBreadcrumb(crumb) }
+                        },
+                        onMoveToFolder: { draggedId, driveId, folderId in
+                            Task {
+                                try? await viewModel.moveFileToBreadcrumbFolder(
+                                    fileId: draggedId, driveId: driveId, folderId: folderId
+                                )
+                            }
+                        }
+                    )
+                }
+                Spacer()
+                if viewModel.hasCustomOrder {
+                    Button {
+                        viewModel.resetSortOrder()
+                    } label: {
+                        Label("Reset Order", systemImage: "arrow.up.arrow.down")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .padding(.trailing, 4)
+                }
+                if viewModel.canCreateFolder {
+                    Button {
+                        newFolderName = ""
+                        showNewFolderAlert = true
+                    } label: {
+                        Label("New Folder", systemImage: "folder.badge.plus")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .padding(.trailing, 12)
+                }
+            }
+            .background(.bar)
+        }
+    }
+
+    // MARK: - File List Content
+
+    @ViewBuilder
+    private var fileListContent: some View {
+        if viewModel.isLoading && viewModel.files.isEmpty {
+            VStack(spacing: 8) {
+                ProgressView()
+                Text("Loading...")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if let error = viewModel.errorMessage {
+            VStack(spacing: 12) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.largeTitle)
+                    .foregroundStyle(.secondary)
+                Text(error)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if viewModel.files.isEmpty {
+            VStack(spacing: 12) {
+                Image(systemName: "folder")
+                    .font(.largeTitle)
+                    .foregroundStyle(.secondary)
+                Text("This folder is empty")
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contextMenu {
+                if viewModel.canCreateFolder {
+                    Button("New Folder") {
+                        newFolderName = ""
+                        showNewFolderAlert = true
+                    }
+                }
+            }
+        } else {
+            populatedFileList
+        }
+    }
+
+    @ViewBuilder
+    private var populatedFileList: some View {
+        ZStack(alignment: .top) {
+            List(viewModel.files, id: \.uniqueId, selection: $selectedFileIds) { file in
+                fileRow(for: file)
+                    .tag(file.uniqueId)
+                    .listRowBackground(dropHighlight(for: file))
+                    .draggable(file.uniqueId)
+                    .dropDestination(for: String.self) { items, _ in
+                        guard let draggedId = items.first, draggedId != file.uniqueId else { return false }
+                        let idsToMove = selectedFileIds.contains(draggedId) ? selectedFileIds : [draggedId]
+                        if file.isFolder {
+                            Task {
+                                for id in idsToMove where id != file.uniqueId {
+                                    await moveFile(draggedId: id, intoFolder: file)
+                                }
+                            }
+                        } else {
+                            viewModel.reorderFile(draggedId: draggedId, targetId: file.uniqueId)
+                        }
+                        dropTargetId = nil
+                        return true
+                    } isTargeted: { targeted in
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            if targeted {
+                                dropTargetId = file.uniqueId
+                            } else if dropTargetId == file.uniqueId {
+                                dropTargetId = nil
+                            }
+                        }
+                    }
+            }
+            .onKeyPress(.escape) {
+                Task { await viewModel.navigateBack() }
+                return .handled
+            }
+            .onKeyPress(.space) {
+                if let file = selectedFile, !file.isFolder {
+                    Task { await quickLook(file) }
+                }
+                return .handled
+            }
+            .contextMenu(forSelectionType: String.self) { ids in
+                if let id = ids.first,
+                   let file = viewModel.files.first(where: { $0.uniqueId == id }) {
+                    contextMenuItems(for: file)
+                }
+            } primaryAction: { ids in
+                if let id = ids.first,
+                   let file = viewModel.files.first(where: { $0.uniqueId == id }) {
+                    handleDoubleClick(file)
+                }
+            }
+
+            if viewModel.isLoading || viewModel.isRefreshing {
+                ProgressView()
+                    .controlSize(.small)
+                    .padding(6)
+                    .background(.regularMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .padding(4)
+            }
+
+            if isDownloading {
+                HStack {
+                    Spacer()
+                    Label("Downloading...", systemImage: "arrow.down.circle")
+                        .padding(8)
+                        .background(.regularMaterial)
+                        .clipShape(Capsule())
+                    Spacer()
+                }
+                .padding(.top, 8)
+            }
+        }
+    }
+
+    // MARK: - Row Builder
+
+    @ViewBuilder
+    private func fileRow(for file: UnifiedFile) -> some View {
+        if renamingFileId == file.uniqueId {
+            FileRowView(
+                file: file,
+                isRenaming: true,
+                renamingText: $renamingText,
+                onRenameCommit: { commitRename() },
+                onRenameCancel: { cancelRename() }
+            )
+        } else {
+            FileRowView(file: file)
         }
     }
 
@@ -340,6 +346,10 @@ struct FileListView: View {
 
         Divider()
 
+        Button("Rename") {
+            startRename(file)
+        }
+
         Button("Delete", role: .destructive) {
             // If the right-clicked item is in the multi-selection, delete all selected
             let ids = selectedFileIds.contains(file.uniqueId) ? selectedFileIds : [file.uniqueId]
@@ -420,6 +430,108 @@ struct FileListView: View {
         } while FileManager.default.fileExists(atPath: candidate.path)
 
         return candidate
+    }
+
+    // MARK: - Folder & Delete Helpers
+
+    private func createNewFolder() {
+        let name = newFolderName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return }
+        let invalidChars = CharacterSet(charactersIn: "\"*:<>?/\\|#%")
+        if name.rangeOfCharacter(from: invalidChars) != nil {
+            operationError = "Folder names cannot contain: \" * : < > ? / \\ | # %"
+            return
+        }
+        Task {
+            do {
+                try await viewModel.createFolder(name: name)
+            } catch {
+                operationError = error.localizedDescription
+            }
+        }
+    }
+
+    private func performDelete() {
+        let ids = itemsToDelete
+        Task {
+            do {
+                try await viewModel.deleteItems(ids)
+                selectedFileIds.subtract(ids)
+            } catch {
+                operationError = error.localizedDescription
+            }
+        }
+    }
+
+    // MARK: - Rename
+
+    private func startRename(_ file: UnifiedFile) {
+        // Pre-select name without extension
+        let name = file.name
+        if !file.isFolder, let dotIndex = name.lastIndex(of: ".") {
+            renamingText = String(name[name.startIndex..<dotIndex])
+        } else {
+            renamingText = name
+        }
+        renamingFileId = file.uniqueId
+    }
+
+    private func cancelRename() {
+        renamingFileId = nil
+        renamingText = ""
+    }
+
+    private func commitRename() {
+        guard let fileId = renamingFileId,
+              let file = viewModel.files.first(where: { $0.uniqueId == fileId }) else {
+            cancelRename()
+            return
+        }
+
+        // Reconstruct full name with extension
+        var newName = renamingText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !newName.isEmpty else {
+            cancelRename()
+            return
+        }
+
+        // Preserve original extension for files
+        if !file.isFolder, let dotIndex = file.name.lastIndex(of: ".") {
+            let ext = String(file.name[dotIndex...])
+            newName += ext
+        }
+
+        // No change — just cancel
+        if newName == file.name {
+            cancelRename()
+            return
+        }
+
+        // Validate name
+        let invalidChars = CharacterSet(charactersIn: "\"*:<>?/\\|#%")
+        if newName.rangeOfCharacter(from: invalidChars) != nil {
+            operationError = "Names cannot contain: \" * : < > ? / \\ | # %"
+            cancelRename()
+            return
+        }
+
+        // Check if extension changed
+        let oldExt = (file.name as NSString).pathExtension
+        let newExt = (newName as NSString).pathExtension
+        if !file.isFolder && !oldExt.isEmpty && oldExt.lowercased() != newExt.lowercased() {
+            // Extension changed — warn but still proceed (user entered full name override)
+        }
+
+        let capturedId = fileId
+        cancelRename()
+
+        Task {
+            do {
+                try await viewModel.renameFile(capturedId, to: newName)
+            } catch {
+                operationError = "Rename failed: \(error.localizedDescription)"
+            }
+        }
     }
 
     private func quickLook(_ file: UnifiedFile) async {
