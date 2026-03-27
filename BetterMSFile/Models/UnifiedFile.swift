@@ -18,6 +18,7 @@ final class UnifiedFile {
     var source: FileSource
     var siteId: String?
     var thumbnailURL: String?
+    var largeThumbnailURL: String?
     var webDavURL: String?  // Direct WebDAV file URL from Graph API — used by Office apps
     var lastCachedAt: Date
 
@@ -36,6 +37,7 @@ final class UnifiedFile {
         source: FileSource = .oneDrive,
         siteId: String? = nil,
         thumbnailURL: String? = nil,
+        largeThumbnailURL: String? = nil,
         webDavURL: String? = nil
     ) {
         self.uniqueId = "\(driveId)_\(itemId)"
@@ -53,6 +55,7 @@ final class UnifiedFile {
         self.source = source
         self.siteId = siteId
         self.thumbnailURL = thumbnailURL
+        self.largeThumbnailURL = largeThumbnailURL
         self.webDavURL = webDavURL
         self.lastCachedAt = .now
     }

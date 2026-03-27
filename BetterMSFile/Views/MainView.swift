@@ -405,7 +405,14 @@ struct MainView: View {
             let file = fileListVM.files.first(where: { $0.uniqueId == id })
                 ?? searchVM.results.first(where: { $0.uniqueId == id })
             if let file {
-                FileDetailView(file: file, favoritesVM: favoritesVM, onShowInFolder: isSearching ? { jumpToLocation(file) } : nil)
+                FileDetailView(
+                    file: file,
+                    favoritesVM: favoritesVM,
+                    onShowInFolder: isSearching ? { jumpToLocation(file) } : nil,
+                    onQuickLook: !file.isFolder ? {
+                        NotificationCenter.default.post(name: .quickLookFile, object: file.uniqueId)
+                    } : nil
+                )
             } else {
                 Text("No Selection")
                     .foregroundStyle(.secondary)

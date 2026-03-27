@@ -225,6 +225,7 @@ extension GraphDriveItem {
             source: source,
             siteId: parentReference?.siteId,
             thumbnailURL: thumbnails?.first?.medium?.url,
+            largeThumbnailURL: thumbnails?.first?.large?.url,
             webDavURL: webDavUrl ?? remoteItem?.webDavUrl
         )
     }

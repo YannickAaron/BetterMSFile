@@ -4,20 +4,22 @@ struct FileDetailView: View {
     let file: UnifiedFile
     var favoritesVM: FavoritesViewModel?
     var onShowInFolder: (() -> Void)?
+    var onQuickLook: (() -> Void)?
     @State private var showCopiedFeedback = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                // Thumbnail preview
-                if let thumbnailURL = file.thumbnailURL, let url = URL(string: thumbnailURL) {
+                // Thumbnail preview — prefer large, fall back to medium
+                let previewURL = file.largeThumbnailURL ?? file.thumbnailURL
+                if let thumbnailURL = previewURL, let url = URL(string: thumbnailURL) {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .success(let image):
                             image
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .frame(maxHeight: 200)
+                                .frame(maxHeight: 280)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .shadow(color: .black.opacity(0.1), radius: 4, y: 2)
                         case .failure:
@@ -100,6 +102,16 @@ struct FileDetailView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
+
+                    if !file.isFolder, let onQuickLook {
+                        Button {
+                            onQuickLook()
+                        } label: {
+                            Label("Quick Look", systemImage: "eye")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                    }
 
                     Button {
                         copyLink()

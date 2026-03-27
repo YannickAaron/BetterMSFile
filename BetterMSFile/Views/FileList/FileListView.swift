@@ -67,6 +67,13 @@ struct FileListView: View {
                 startRename(file)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .quickLookFile)) { notification in
+            if let uniqueId = notification.object as? String,
+               let file = viewModel.files.first(where: { $0.uniqueId == uniqueId }),
+               !file.isFolder {
+                Task { await quickLook(file) }
+            }
+        }
     }
 
     // MARK: - Main Content

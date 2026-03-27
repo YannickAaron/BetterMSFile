@@ -120,4 +120,5 @@ extension Notification.Name {
     static let toggleFavorite = Notification.Name("toggleFavorite")
     static let createNewFolder = Notification.Name("createNewFolder")
     static let renameSelectedFile = Notification.Name("renameSelectedFile")
+    static let quickLookFile = Notification.Name("quickLookFile")
 }
