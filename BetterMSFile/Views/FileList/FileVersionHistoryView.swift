@@ -31,7 +31,17 @@ struct FileVersionHistoryView: View {
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             } else {
-                ForEach(versions, id: \.id) { version in
+                ForEach(Array(versions.enumerated()), id: \.element.id) { index, version in
+                    // Gap badge between consecutive versions (versions are newest-first)
+                    if index > 0 {
+                        if let newerDate = parsedDate(for: versions[index - 1]),
+                           let olderDate = parsedDate(for: version) {
+                            let days = Calendar.current.dateComponents([.day], from: olderDate, to: newerDate).day ?? 0
+                            if days > 0 {
+                                daysBetweenDivider(days: days)
+                            }
+                        }
+                    }
                     versionRow(version)
                 }
             }
@@ -44,31 +54,57 @@ struct FileVersionHistoryView: View {
         }
     }
 
+    // MARK: - Sub-views
+
+    @ViewBuilder
+    private func daysBetweenDivider(days: Int) -> some View {
+        HStack(spacing: 6) {
+            Rectangle()
+                .fill(Color.secondary.opacity(0.12))
+                .frame(height: 1)
+            Text("\(days) day\(days == 1 ? "" : "s") between versions")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .fixedSize()
+            Rectangle()
+                .fill(Color.secondary.opacity(0.12))
+                .frame(height: 1)
+        }
+        .padding(.vertical, 2)
+    }
+
     @ViewBuilder
     private func versionRow(_ version: GraphDriveItemVersion) -> some View {
-        HStack(spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(alignment: .top, spacing: 8) {
+            VStack(alignment: .leading, spacing: 3) {
+                // Version label
                 Text("v\(version.id)")
                     .font(.caption)
-                    .fontWeight(.medium)
+                    .fontWeight(.semibold)
+
+                // Absolute date + "X days ago"
+                if let dateStr = version.lastModifiedDateTime,
+                   let date = parseISO8601(dateStr) {
+                    Text(date.formatted(date: .abbreviated, time: .shortened))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(relativeTimeLabel(for: date))
+                        .font(.caption2)
+                        .foregroundStyle(.blue.opacity(0.8))
+                }
+
+                // Size + author
                 HStack(spacing: 4) {
-                    if let dateStr = version.lastModifiedDateTime,
-                       let date = parseISO8601(dateStr) {
-                        Text(date.formatted(date: .abbreviated, time: .shortened))
-                    }
                     if let size = version.size {
-                        Text("·")
                         Text(size.formattedFileSize)
+                    }
+                    if let name = version.lastModifiedBy?.user?.displayName {
+                        if version.size != nil { Text("·") }
+                        Text(name)
                     }
                 }
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
-
-                if let name = version.lastModifiedBy?.user?.displayName {
-                    Text(name)
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
             }
 
             Spacer()
@@ -76,6 +112,7 @@ struct FileVersionHistoryView: View {
             if downloadingVersionId == version.id {
                 ProgressView()
                     .controlSize(.mini)
+                    .padding(.top, 2)
             } else {
                 Button {
                     Task { await downloadVersion(version) }
@@ -86,10 +123,52 @@ struct FileVersionHistoryView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
                 .help("Download this version")
+                .padding(.top, 2)
             }
         }
         .padding(.vertical, 2)
     }
+
+    // MARK: - Helpers
+
+    private func parsedDate(for version: GraphDriveItemVersion) -> Date? {
+        guard let dateStr = version.lastModifiedDateTime else { return nil }
+        return parseISO8601(dateStr)
+    }
+
+    private func relativeTimeLabel(for date: Date) -> String {
+        let components = Calendar.current.dateComponents([.day, .hour, .minute], from: date, to: .now)
+        let days = components.day ?? 0
+        let hours = components.hour ?? 0
+        let minutes = components.minute ?? 0
+
+        switch days {
+        case let d where d > 365:
+            let years = d / 365
+            return "\(years) year\(years == 1 ? "" : "s") ago"
+        case let d where d > 30:
+            let months = d / 30
+            return "\(months) month\(months == 1 ? "" : "s") ago"
+        case 1...:
+            return "\(days) day\(days == 1 ? "" : "s") ago"
+        case _ where hours >= 1:
+            return "\(hours) hour\(hours == 1 ? "" : "s") ago"
+        case _ where minutes >= 1:
+            return "\(minutes) min ago"
+        default:
+            return "just now"
+        }
+    }
+
+    private func parseISO8601(_ string: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: string) { return date }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: string)
+    }
+
+    // MARK: - Load & Download
 
     private func loadVersions() async {
         guard !file.isFolder, !file.driveId.isEmpty else { return }
@@ -130,11 +209,5 @@ struct FileVersionHistoryView: View {
         } catch {
             // Silently fail — download button will just stop spinning
         }
-    }
-
-    private func parseISO8601(_ string: String) -> Date? {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter.date(from: string)
     }
 }

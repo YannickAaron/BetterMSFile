@@ -1,6 +1,5 @@
 import SwiftUI
 import QuickLookUI
-import UniformTypeIdentifiers
 
 struct FileListView: View {
     let viewModel: FileListViewModel
@@ -26,8 +25,12 @@ struct FileListView: View {
 
     var body: some View {
         mainContent
-            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-                handleFileDrop(providers)
+            .dropDestination(for: URL.self) { urls, _ in
+                guard viewModel.canCreateFolder, !urls.isEmpty else { return false }
+                Task { await viewModel.uploadFiles(urls) }
+                return true
+            } isTargeted: { targeted in
+                isDropTargeted = targeted
             }
             .onChange(of: quickLookURL) { _, url in
             if let url {
@@ -304,7 +307,12 @@ struct FileListView: View {
                 files: viewModel.files,
                 selectedFileIds: $selectedFileIds,
                 onDoubleClick: { file in handleDoubleClick(file) },
-                contextMenuItems: { file in AnyView(contextMenuItems(for: file)) }
+                contextMenuItems: { file in AnyView(contextMenuItems(for: file)) },
+                canCreateFolder: viewModel.canCreateFolder,
+                onNewFolder: {
+                    newFolderName = ""
+                    showNewFolderAlert = true
+                }
             )
 
             if viewModel.isLoading || viewModel.isRefreshing {
@@ -364,6 +372,11 @@ struct FileListView: View {
                 if let id = ids.first,
                    let file = viewModel.files.first(where: { $0.uniqueId == id }) {
                     contextMenuItems(for: file)
+                } else if viewModel.canCreateFolder {
+                    Button("New Folder") {
+                        newFolderName = ""
+                        showNewFolderAlert = true
+                    }
                 }
             } primaryAction: { ids in
                 if let id = ids.first,
@@ -604,29 +617,6 @@ struct FileListView: View {
 
         guard panel.runModal() == .OK else { return }
         Task { await viewModel.uploadFiles(panel.urls) }
-    }
-
-    private func handleFileDrop(_ providers: [NSItemProvider]) -> Bool {
-        guard viewModel.canCreateFolder else { return false }
-        var urls: [URL] = []
-        let group = DispatchGroup()
-
-        for provider in providers {
-            group.enter()
-            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
-                defer { group.leave() }
-                if let data = item as? Data, let url = URL(dataRepresentation: data, relativeTo: nil) {
-                    urls.append(url)
-                }
-            }
-        }
-
-        group.notify(queue: .main) {
-            guard !urls.isEmpty else { return }
-            Task { await viewModel.uploadFiles(urls) }
-        }
-
-        return true
     }
 
     @ViewBuilder
