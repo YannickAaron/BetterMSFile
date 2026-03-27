@@ -1,5 +1,6 @@
 import SwiftUI
 import QuickLookUI
+import UniformTypeIdentifiers
 
 struct FileListView: View {
     let viewModel: FileListViewModel
@@ -16,6 +17,7 @@ struct FileListView: View {
     @State private var operationError: String?
     @State private var renamingFileId: String?
     @State private var renamingText = ""
+    @State private var isDropTargeted = false
 
     private var selectedFile: UnifiedFile? {
         guard let id = selectedFileIds.first else { return nil }
@@ -23,11 +25,11 @@ struct FileListView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            breadcrumbBar
-            fileListContent
-        }
-        .onChange(of: quickLookURL) { _, url in
+        mainContent
+            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+                handleFileDrop(providers)
+            }
+            .onChange(of: quickLookURL) { _, url in
             if let url {
                 NSWorkspace.shared.open(url)
                 quickLookURL = nil
@@ -67,6 +69,49 @@ struct FileListView: View {
         }
     }
 
+    // MARK: - Main Content
+
+    private var mainContent: some View {
+        ZStack {
+            VStack(spacing: 0) {
+                breadcrumbBar
+                fileListContent
+            }
+            dropZoneOverlay
+            uploadProgressOverlay
+        }
+    }
+
+    @ViewBuilder
+    private var dropZoneOverlay: some View {
+        if isDropTargeted && viewModel.canCreateFolder {
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 2, dash: [8]))
+                .background(Color.accentColor.opacity(0.08))
+                .overlay {
+                    VStack(spacing: 8) {
+                        Image(systemName: "arrow.up.doc")
+                            .font(.largeTitle)
+                        Text("Drop to upload")
+                            .font(.headline)
+                    }
+                    .foregroundStyle(Color.accentColor)
+                }
+                .padding(8)
+        }
+    }
+
+    @ViewBuilder
+    private var uploadProgressOverlay: some View {
+        if viewModel.isUploading {
+            VStack {
+                Spacer()
+                uploadProgressView
+                    .padding()
+            }
+        }
+    }
+
     // MARK: - Breadcrumb Bar
 
     @ViewBuilder
@@ -101,6 +146,14 @@ struct FileListView: View {
                     .padding(.trailing, 4)
                 }
                 if viewModel.canCreateFolder {
+                    Button { showUploadPicker() } label: {
+                        Label("Upload", systemImage: "arrow.up.doc")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                    .padding(.trailing, 4)
+
                     Button {
                         newFolderName = ""
                         showNewFolderAlert = true
@@ -430,6 +483,66 @@ struct FileListView: View {
         } while FileManager.default.fileExists(atPath: candidate.path)
 
         return candidate
+    }
+
+    // MARK: - Upload
+
+    private func showUploadPicker() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = true
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.message = "Select files to upload"
+
+        guard panel.runModal() == .OK else { return }
+        Task { await viewModel.uploadFiles(panel.urls) }
+    }
+
+    private func handleFileDrop(_ providers: [NSItemProvider]) -> Bool {
+        guard viewModel.canCreateFolder else { return false }
+        var urls: [URL] = []
+        let group = DispatchGroup()
+
+        for provider in providers {
+            group.enter()
+            provider.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, _ in
+                defer { group.leave() }
+                if let data = item as? Data, let url = URL(dataRepresentation: data, relativeTo: nil) {
+                    urls.append(url)
+                }
+            }
+        }
+
+        group.notify(queue: .main) {
+            guard !urls.isEmpty else { return }
+            Task { await viewModel.uploadFiles(urls) }
+        }
+
+        return true
+    }
+
+    @ViewBuilder
+    private var uploadProgressView: some View {
+        VStack(spacing: 4) {
+            ForEach(viewModel.uploadQueue) { upload in
+                HStack(spacing: 8) {
+                    Image(systemName: upload.error != nil ? "xmark.circle.fill" : upload.isComplete ? "checkmark.circle.fill" : "arrow.up.circle")
+                        .foregroundStyle(upload.error != nil ? Color.red : upload.isComplete ? Color.green : Color.accentColor)
+                    Text(upload.filename)
+                        .lineLimit(1)
+                        .font(.caption)
+                    Spacer()
+                    if !upload.isComplete && upload.error == nil {
+                        ProgressView(value: Double(upload.bytesUploaded), total: Double(upload.totalBytes))
+                            .frame(width: 80)
+                    }
+                }
+            }
+        }
+        .padding(12)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .shadow(radius: 4)
     }
 
     // MARK: - Folder & Delete Helpers

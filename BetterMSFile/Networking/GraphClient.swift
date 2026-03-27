@@ -77,6 +77,34 @@ final class GraphClient {
         _ = try await performRequest(request: request)
     }
 
+    /// PUT with raw data body (used for small file uploads).
+    func put(_ url: URL, data: Data, contentType: String) async throws -> Data {
+        var request = try await authenticatedRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        request.httpBody = data
+        return try await performRequest(request: request)
+    }
+
+    /// POST with JSON body, returning raw Data (used for upload sessions).
+    func postRaw<Body: Encodable>(_ url: URL, body: Body) async throws -> Data {
+        var request = try await authenticatedRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(body)
+        return try await performRequest(request: request)
+    }
+
+    /// PUT raw data to a URL without Bearer auth (for resumable upload chunks).
+    func putUnauthenticated(_ url: URL, data: Data, contentType: String, contentRange: String) async throws -> Data {
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        request.setValue(contentRange, forHTTPHeaderField: "Content-Range")
+        request.httpBody = data
+        return try await performRequest(request: request)
+    }
+
     /// Get raw data (used for file downloads).
     func getData(_ url: URL) async throws -> Data {
         try await performRequest(url: url)

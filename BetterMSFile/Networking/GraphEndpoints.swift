@@ -45,6 +45,24 @@ enum GraphEndpoints {
         url("/drives/\(driveId)/items/\(itemId)/thumbnails")
     }
 
+    // MARK: - Upload
+
+    /// Simple upload endpoint for files <4MB.
+    /// PUT /drives/{driveId}/items/{parentId}:/{filename}:/content
+    static func uploadSmall(driveId: String, parentId: String, filename: String, conflictBehavior: String = "rename") -> URL {
+        let encodedFilename = filename.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? filename
+        var queryItems = [URLQueryItem(name: "@microsoft.graph.conflictBehavior", value: conflictBehavior)]
+        queryItems.append(contentsOf: driveItemSelect)
+        return url("/drives/\(driveId)/items/\(parentId):/\(encodedFilename):/content", queryItems: queryItems)
+    }
+
+    /// Create upload session for files >=4MB.
+    /// POST /drives/{driveId}/items/{parentId}:/{filename}:/createUploadSession
+    static func createUploadSession(driveId: String, parentId: String, filename: String) -> URL {
+        let encodedFilename = filename.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? filename
+        return url("/drives/\(driveId)/items/\(parentId):/\(encodedFilename):/createUploadSession")
+    }
+
     // MARK: - SharePoint
 
     static var followedSites: URL { url("/me/followedSites") }

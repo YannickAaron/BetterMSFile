@@ -351,6 +351,144 @@ final class FileListViewModel {
         if let firstError { throw firstError }
     }
 
+    // MARK: - Upload
+
+    /// Upload state for tracking progress in the UI.
+    struct UploadProgress: Identifiable {
+        let id = UUID()
+        let filename: String
+        var bytesUploaded: Int64 = 0
+        var totalBytes: Int64
+        var isComplete = false
+        var error: String?
+    }
+
+    var uploadQueue: [UploadProgress] = []
+    var isUploading: Bool { !uploadQueue.isEmpty && uploadQueue.contains(where: { !$0.isComplete }) }
+
+    /// Upload files from local URLs to the current folder.
+    func uploadFiles(_ urls: [URL]) async {
+        guard let crumb = breadcrumbs.last, !crumb.driveId.isEmpty else { return }
+        let parentId = crumb.itemId ?? "root"
+        let driveId = crumb.driveId
+        let source = crumb.source
+        let maxFileSize: Int64 = 4 * 1024 * 1024  // 4MB threshold
+
+        for url in urls {
+            guard url.startAccessingSecurityScopedResource() else { continue }
+            defer { url.stopAccessingSecurityScopedResource() }
+
+            let filename = url.lastPathComponent
+            guard let fileData = try? Data(contentsOf: url) else { continue }
+            let fileSize = Int64(fileData.count)
+
+            let progressIndex = uploadQueue.count
+            uploadQueue.append(UploadProgress(filename: filename, totalBytes: fileSize))
+
+            do {
+                if fileSize < maxFileSize {
+                    // Simple upload
+                    let contentType = mimeType(for: url) ?? "application/octet-stream"
+                    let item = try await fileService.uploadSmall(
+                        data: fileData,
+                        filename: filename,
+                        driveId: driveId,
+                        parentId: parentId,
+                        contentType: contentType
+                    )
+                    let newFile = item.toUnifiedFile(source: source)
+                    if !files.contains(where: { $0.uniqueId == newFile.uniqueId }) {
+                        files.append(newFile)
+                        sortFiles()
+                    }
+                } else {
+                    // Resumable upload
+                    let session = try await fileService.createUploadSession(
+                        driveId: driveId,
+                        parentId: parentId,
+                        filename: filename
+                    )
+                    guard let sessionURL = URL(string: session.uploadUrl) else {
+                        throw GraphError.invalidResponse
+                    }
+
+                    let chunkSize = 5 * 1024 * 1024 // 5MB chunks
+                    var offset = 0
+
+                    while offset < fileData.count {
+                        let end = min(offset + chunkSize, fileData.count)
+                        let chunkData = fileData[offset..<end]
+                        let range = "\(offset)-\(end - 1)"
+
+                        let responseData = try await fileService.uploadChunk(
+                            sessionURL: sessionURL,
+                            data: Data(chunkData),
+                            range: range,
+                            totalSize: fileSize
+                        )
+
+                        offset = end
+                        if progressIndex < uploadQueue.count {
+                            uploadQueue[progressIndex].bytesUploaded = Int64(offset)
+                        }
+
+                        // Final chunk returns the completed item
+                        if offset >= fileData.count {
+                            if let item = try? JSONDecoder().decode(GraphDriveItem.self, from: responseData) {
+                                let newFile = item.toUnifiedFile(source: source)
+                                if !files.contains(where: { $0.uniqueId == newFile.uniqueId }) {
+                                    files.append(newFile)
+                                    sortFiles()
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if progressIndex < uploadQueue.count {
+                    uploadQueue[progressIndex].isComplete = true
+                }
+                invalidateCache(for: currentCacheKey)
+            } catch {
+                if progressIndex < uploadQueue.count {
+                    uploadQueue[progressIndex].error = error.localizedDescription
+                    uploadQueue[progressIndex].isComplete = true
+                }
+            }
+        }
+
+        // Clear completed uploads after a delay
+        Task {
+            try? await Task.sleep(for: .seconds(3))
+            uploadQueue.removeAll(where: { $0.isComplete })
+        }
+    }
+
+    /// Determine MIME type from file URL.
+    private func mimeType(for url: URL) -> String? {
+        let ext = url.pathExtension.lowercased()
+        let mimeTypes: [String: String] = [
+            "pdf": "application/pdf",
+            "doc": "application/msword",
+            "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "xls": "application/vnd.ms-excel",
+            "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "ppt": "application/vnd.ms-powerpoint",
+            "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "txt": "text/plain",
+            "csv": "text/csv",
+            "png": "image/png",
+            "jpg": "image/jpeg",
+            "jpeg": "image/jpeg",
+            "gif": "image/gif",
+            "svg": "image/svg+xml",
+            "zip": "application/zip",
+            "mp4": "video/mp4",
+            "mp3": "audio/mpeg",
+        ]
+        return mimeTypes[ext] ?? "application/octet-stream"
+    }
+
     // MARK: - Rename
 
     /// Rename a file or folder. Updates the local list optimistically and reverts on failure.

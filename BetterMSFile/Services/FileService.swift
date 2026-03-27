@@ -86,6 +86,58 @@ final class FileService {
         let body = MoveItemRequest(parentReference: .init(id: toFolderId))
         return try await client.patch(url, body: body)
     }
+    // MARK: - Upload
+
+    /// Simple upload for files under 4MB.
+    func uploadSmall(
+        data: Data,
+        filename: String,
+        driveId: String,
+        parentId: String,
+        contentType: String,
+        conflictBehavior: String = "rename"
+    ) async throws -> GraphDriveItem {
+        let url = GraphEndpoints.uploadSmall(
+            driveId: driveId,
+            parentId: parentId,
+            filename: filename,
+            conflictBehavior: conflictBehavior
+        )
+        let responseData = try await client.put(url, data: data, contentType: contentType)
+        return try JSONDecoder().decode(GraphDriveItem.self, from: responseData)
+    }
+
+    /// Create a resumable upload session for large files.
+    func createUploadSession(
+        driveId: String,
+        parentId: String,
+        filename: String,
+        conflictBehavior: String = "rename"
+    ) async throws -> UploadSession {
+        let url = GraphEndpoints.createUploadSession(driveId: driveId, parentId: parentId, filename: filename)
+        let body = CreateUploadSessionRequest(
+            item: .init(conflictBehavior: conflictBehavior, name: filename)
+        )
+        let responseData = try await client.postRaw(url, body: body)
+        return try JSONDecoder().decode(UploadSession.self, from: responseData)
+    }
+
+    /// Upload a chunk to a resumable upload session.
+    func uploadChunk(
+        sessionURL: URL,
+        data: Data,
+        range: String,
+        totalSize: Int64
+    ) async throws -> Data {
+        let contentRange = "bytes \(range)/\(totalSize)"
+        return try await client.putUnauthenticated(
+            sessionURL,
+            data: data,
+            contentType: "application/octet-stream",
+            contentRange: contentRange
+        )
+    }
+
     /// Rename a file or folder via PATCH.
     func renameItem(driveId: String, itemId: String, newName: String) async throws -> GraphDriveItem {
         let url = GraphEndpoints.driveItem(driveId: driveId, itemId: itemId)
@@ -98,6 +150,27 @@ final class FileService {
 
 private struct RenameItemRequest: Encodable {
     let name: String
+}
+
+// MARK: - Upload Request
+
+private struct CreateUploadSessionRequest: Encodable {
+    let item: UploadItemProperties
+
+    struct UploadItemProperties: Encodable {
+        let conflictBehavior: String
+        let name: String
+
+        enum CodingKeys: String, CodingKey {
+            case conflictBehavior = "@microsoft.graph.conflictBehavior"
+            case name
+        }
+    }
+}
+
+struct UploadSession: Codable {
+    let uploadUrl: String
+    let expirationDateTime: String?
 }
 
 // MARK: - Create Folder Request
