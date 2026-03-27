@@ -57,16 +57,18 @@ Then upload in 320KB-10MB chunks with byte-range headers and progress tracking.
 
 ### Architecture
 
-- **New file:** `Services/UploadService.swift` — manages upload queue with `TaskGroup`, max 3 concurrent uploads
-- **Modify:** `Networking/GraphClient.swift` — add `uploadSmall()` and `createUploadSession()` + `uploadChunk()` endpoints
-- **Modify:** `ViewModels/FileListViewModel.swift` — add `uploadFiles(_ urls: [URL], to parentItem: UnifiedFile)`, `cancelUpload(id: UUID)`
+- **Modify:** `Networking/GraphClient.swift` — add a new `put(url:data:contentType:)` method for raw data uploads (the existing client only has `get`/`post`/`patch`/`delete` with JSON encoding; simple upload requires `PUT` with raw `Data` body and `Content-Type` header from the file). Also add `createUploadSession()` and `uploadChunk()` methods.
+- **Modify:** `Services/FileService.swift` — add upload methods to the existing file service (following the same pattern as `createFolder`, `deleteItems`, `moveFile`, `downloadFile`). `FileService` already holds a `GraphClient` reference and is injected via `AppState`. Upload methods: `uploadSmall(data:filename:parentDriveId:parentItemId:conflictBehavior:)`, `createUploadSession(...)`, `uploadChunk(sessionUrl:range:data:)`.
+- **Modify:** `ViewModels/FileListViewModel.swift` — add `uploadFiles(_ urls: [URL])` and `cancelUpload(id: UUID)`. Manages upload queue with `TaskGroup` (max 3 concurrent). Calls `FileService` upload methods.
 - **Modify:** `Views/FileList/FileListView.swift` — add `.onDrop(of:)` modifier, upload button in toolbar, progress overlay
+- **Drive ID resolution:** The upload target's `driveId` and `parentItemId` must be resolved from the current breadcrumb state. For OneDrive, these are available directly. For SharePoint sites and Teams channels, resolve from the current folder's `UnifiedFile.driveId` property (already stored from initial navigation). If `driveId` is nil or empty (which should not happen for navigated folders), show an error alert.
 
 ### Edge Cases
 - Upload to the same folder the user is viewing: refresh file list on each completed upload
 - Network interruption during resumable upload: retry from last successful chunk (session URL persists for 48h)
 - Zero-byte files: use simple upload path regardless of size threshold
 - Frecency: record access only after successful upload completion
+- Cross-drive context: upload always targets the current folder's drive — no cross-drive concern since the file data comes from Finder (local), not another Graph drive
 
 ---
 
@@ -85,8 +87,8 @@ Body: {"name": "new-name.ext"}
 
 - **Triggers:**
   - Context menu: "Rename" item
-  - Keyboard: Enter key on single selection (matching Finder convention — Enter = rename)
-  - Mouse: Slow double-click on the filename text (not the row icon or the row background)
+  - Keyboard: F2 key on single selection (avoids conflict with existing Enter key behavior which navigates into folders / opens files via `handleDoubleClick`). Note: the current `.onKeyPress(.return)` in `FileListView` maps to open/navigate and must be preserved. F2 is the standard rename shortcut on Windows and is familiar to Microsoft 365 users.
+  - Mouse: Context menu only for initial implementation. Slow double-click (Finder-style) is complex to implement in SwiftUI (requires distinguishing single click, double click, and slow double-click with custom gesture handling) — defer to a later polish pass.
 - **Inline editing:** `FileRowView` replaces the name `Text` with an editable `TextField`. Pre-selects the name without the file extension (matching Finder behavior).
 - **Commit:** Press Enter or click away to confirm. Press Escape to cancel.
 - **Validation:** Reuse `FolderNameValidator` logic — reject `/ \ : * ? " < > |` characters. Show inline red text below the field if invalid.
@@ -163,19 +165,37 @@ class TabManager {
     var activeTab: Tab { ... }
 }
 
-struct Tab: Identifiable {
+/// Tab uses a class (not struct) because it holds a reference-type ViewModel
+/// and needs stable identity for SwiftUI's ForEach and drag reorder.
+class Tab: Identifiable, Equatable {
     let id: UUID
     let viewModel: FileListViewModel
     var title: String
     var icon: String
-    var location: TabLocation  // driveId + folderId, or special (.myDrive, .recent, .shared)
+    var location: TabLocation
+    var loadTask: Task<Void, Never>?  // per-tab load task for cancellation
+
+    static func == (lhs: Tab, rhs: Tab) -> Bool { lhs.id == rhs.id }
+}
+
+/// Represents a navigable location for tab persistence.
+enum TabLocation: Codable, Equatable {
+    case myDrive                                    // OneDrive root
+    case recent                                     // Recent files
+    case sharedWithMe                               // Shared with Me
+    case folder(driveId: String, folderId: String)  // Specific folder in any drive
+    case siteDrives(siteId: String, siteName: String)  // SharePoint site root
+    case teamChannels(siteId: String, siteName: String) // Teams site channels
 }
 ```
 
 - Each `Tab` owns an independent `FileListViewModel` instance
+- **Task cancellation per tab:** Each `Tab` holds an optional `loadTask: Task<Void, Never>?`. When switching tabs, the previous tab's load task is NOT cancelled (it continues in the background). When closing a tab, its load task IS cancelled. When navigating within a tab (folder change), the tab's load task is cancelled and replaced — matching the existing pattern in `MainView`.
+- Currently `MainView` stores `loadContentTask` and cancels on sidebar changes. After tabs, this moves INTO each `Tab` object, and `TabManager` manages the lifecycle.
 - Switching tabs is instant (no reload — the ViewModel retains its state)
 - `TabManager` is injected at `MainView` level, replacing the current single `FileListViewModel` reference
 - Sidebar navigation acts on `TabManager.activeTab.viewModel`
+- **Memory management:** Each tab's `FileListViewModel` has its own 50-entry in-memory cache. With 10 tabs, worst case is 500 cached entries. To mitigate: when tab count exceeds 5, reduce per-ViewModel cache to 25 entries. Background tabs that haven't been viewed in >10 minutes can have their cache evicted (they'll reload on next switch).
 
 ### UI Specification
 
@@ -266,6 +286,12 @@ struct FileVersion: Identifiable {
 - **Modify:** `Networking/GraphClient.swift` — add `getVersions()`, `downloadVersion()`, `restoreVersion()` endpoints
 - **Modify:** `Views/FileList/FileDetailView.swift` — add version history section
 
+### Platform-Specific Behavior
+- **OneDrive Personal:** Limited version support — may only store major versions. The versions endpoint may return fewer results or an empty array. Handle gracefully: show "No version history available" if the array is empty.
+- **OneDrive for Business:** Full version history support with configurable retention.
+- **SharePoint:** Can have both major and minor versions depending on library settings. Minor versions (e.g., "0.1", "0.2") may appear — display them all.
+- **404 response:** If the versions endpoint returns 404 (unsupported for item type or plan), hide the section entirely rather than showing an error.
+
 ---
 
 ## Feature 6: Enhanced Inspector Preview
@@ -285,22 +311,27 @@ Richer, more interactive file previews replacing the current static thumbnail in
 
 ### Architecture
 
+**Each preview sub-view owns a lightweight ViewModel** (`@State private var` or a dedicated `@Observable` class) that handles the authenticated download via `GraphClient`. The `GraphClient` reference is passed down from the parent `FileDetailView` (which already has access via the environment or its own ViewModel). This avoids `AsyncImage` which cannot authenticate with Graph API.
+
 **Dispatcher pattern:**
 ```swift
 struct FilePreviewView: View {
     let file: UnifiedFile
+    let graphClient: GraphClient  // passed from FileDetailView
 
     var body: some View {
         switch file.previewCategory {
-        case .image:    ImagePreviewView(file: file)
-        case .pdf:      PDFPreviewView(file: file)
-        case .office:   OfficePreviewView(file: file)
-        case .text:     TextPreviewView(file: file)
+        case .image:    ImagePreviewView(file: file, graphClient: graphClient)
+        case .pdf:      PDFPreviewView(file: file, graphClient: graphClient)
+        case .office:   OfficePreviewView(file: file, graphClient: graphClient)
+        case .text:     TextPreviewView(file: file, graphClient: graphClient)
         case .other:    DefaultPreviewView(file: file)
         }
     }
 }
 ```
+
+Each sub-view uses a `@State` task to download content on appear, stores the result in `@State` (e.g., `NSImage` for images, `PDFDocument` for PDFs, `String` for text), and cancels the task on disappear/deselection.
 
 ### Files to Create/Modify
 
@@ -309,12 +340,12 @@ struct FilePreviewView: View {
 - **New:** `Views/Preview/PDFPreviewView.swift`
 - **New:** `Views/Preview/OfficePreviewView.swift`
 - **New:** `Views/Preview/TextPreviewView.swift`
-- **Modify:** `Views/FileList/FileDetailView.swift` — replace thumbnail with `FilePreviewView`
+- **Modify:** `Views/FileList/FileDetailView.swift` — replace thumbnail with `FilePreviewView`, pass `GraphClient`
 - **Modify:** `Models/UnifiedFile.swift` or extension — add `previewCategory` computed property
 
 ### Edge Cases
-- Large files: set size limits (e.g., don't download >50MB images for preview, show "File too large for preview" with Quick Look button)
-- Deselection: cancel any in-progress preview download task
+- **Size limits:** Don't download >50MB files for preview (images, PDFs, or text). Show "File too large for preview" with a "Quick Look" button fallback. Check `file.size` before initiating download.
+- Deselection: cancel any in-progress preview download task (via `.task(id: file.id)` modifier)
 - Temp files: use same 24h cleanup as Quick Look files
 - Network errors: show file type icon fallback with "Preview unavailable" message
 
@@ -341,7 +372,7 @@ Collection of refinements that elevate the app's visual quality and native feel.
 - **Files:** `Views/Common/SkeletonView.swift` (new), `Views/FileList/FileListView.swift`, `Views/FileList/FileGridView.swift`
 
 **Smoother animations:**
-- `matchedGeometryEffect` on list-to-grid transitions (match by file ID)
+- List-to-grid transition: use a simple crossfade (`.transition(.opacity)`) rather than `matchedGeometryEffect`, because `List` (backed by `NSTableView`) and `LazyVGrid` (inside `ScrollView`) live in different container hierarchies where matched geometry does not produce reliable hero animations on macOS. A clean crossfade is more predictable.
 - Spring animation on sidebar section expand/collapse
 - Row insertion/removal: `.transition(.asymmetric(insertion: .opacity.combined(with: .move(edge: .top)), removal: .opacity))`
 - **Files:** various view files
