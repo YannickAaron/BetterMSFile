@@ -76,6 +76,7 @@ struct FileListView: View {
             VStack(spacing: 0) {
                 breadcrumbBar
                 fileListContent
+                statusBar
             }
             dropZoneOverlay
             uploadProgressOverlay
@@ -109,6 +110,39 @@ struct FileListView: View {
                 uploadProgressView
                     .padding()
             }
+        }
+    }
+
+    // MARK: - Status Bar
+
+    @ViewBuilder
+    private var statusBar: some View {
+        if !viewModel.files.isEmpty {
+            HStack {
+                let fileCount = viewModel.files.filter { !$0.isFolder }.count
+                let folderCount = viewModel.files.filter { $0.isFolder }.count
+                let parts = [
+                    folderCount > 0 ? "\(folderCount) folder\(folderCount == 1 ? "" : "s")" : nil,
+                    fileCount > 0 ? "\(fileCount) file\(fileCount == 1 ? "" : "s")" : nil
+                ].compactMap { $0 }
+                Text(parts.joined(separator: ", "))
+
+                if selectedFileIds.count > 1 {
+                    Text("— \(selectedFileIds.count) selected")
+                }
+
+                Spacer()
+
+                if viewModel.isRefreshing {
+                    ProgressView()
+                        .controlSize(.mini)
+                }
+            }
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .background(.bar)
         }
     }
 
@@ -216,10 +250,29 @@ struct FileListView: View {
         } else if viewModel.files.isEmpty {
             VStack(spacing: 12) {
                 Image(systemName: "folder")
-                    .font(.largeTitle)
+                    .font(.system(size: 40))
                     .foregroundStyle(.secondary)
                 Text("This folder is empty")
                     .foregroundStyle(.secondary)
+                if viewModel.canCreateFolder {
+                    HStack(spacing: 12) {
+                        Button {
+                            showUploadPicker()
+                        } label: {
+                            Label("Upload Files", systemImage: "arrow.up.doc")
+                        }
+                        .buttonStyle(.bordered)
+
+                        Button {
+                            newFolderName = ""
+                            showNewFolderAlert = true
+                        } label: {
+                            Label("New Folder", systemImage: "folder.badge.plus")
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .padding(.top, 4)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .contextMenu {

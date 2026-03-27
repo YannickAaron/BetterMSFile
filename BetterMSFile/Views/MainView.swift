@@ -75,6 +75,19 @@ struct MainView: View {
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 Button {
+                    if let item = selectedItem {
+                        loadContentTask?.cancel()
+                        loadContentTask = Task { await loadContent(for: item) }
+                    }
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                }
+                .keyboardShortcut("r", modifiers: .command)
+                .disabled(isSearching)
+            }
+
+            ToolbarItem(placement: .automatic) {
+                Button {
                     toggleSearch()
                 } label: {
                     Label("Search", systemImage: isSearching ? "xmark" : "magnifyingglass")
@@ -358,12 +371,34 @@ struct MainView: View {
     @ViewBuilder
     private var inspectorContent: some View {
         if selectedFileIds.count > 1 {
-            VStack(spacing: 8) {
+            let selectedFiles = selectedFileIds.compactMap { id in
+                fileListVM.files.first(where: { $0.uniqueId == id })
+                    ?? searchVM.results.first(where: { $0.uniqueId == id })
+            }
+            let totalSize = selectedFiles.filter { !$0.isFolder }.reduce(Int64(0)) { $0 + $1.size }
+            let folderCount = selectedFiles.filter { $0.isFolder }.count
+            let fileCount = selectedFiles.count - folderCount
+
+            VStack(spacing: 12) {
                 Image(systemName: "doc.on.doc")
-                    .font(.largeTitle)
+                    .font(.system(size: 40))
                     .foregroundStyle(.secondary)
                 Text("\(selectedFileIds.count) items selected")
+                    .font(.headline)
                     .foregroundStyle(.secondary)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    if folderCount > 0 {
+                        Text("\(folderCount) folder\(folderCount == 1 ? "" : "s")")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                    if fileCount > 0 {
+                        Text("\(fileCount) file\(fileCount == 1 ? "" : "s") — \(totalSize.formattedFileSize)")
+                            .font(.caption)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
             }
             .frame(maxHeight: .infinity)
         } else if let id = selectedFileIds.first {
