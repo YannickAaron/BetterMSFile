@@ -4,437 +4,373 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BetterMSFile — Your Microsoft 365 Files, One Native App</title>
-<meta name="description" content="A native macOS file browser for OneDrive and SharePoint. Always online, no sync issues, native Finder experience.">
+<meta name="description" content="A free, open source native macOS file browser for OneDrive and SharePoint. Always online, no sync issues, native Finder experience.">
 <style>
-  :root {
-    --blue-dark: #0a1628;
-    --blue-mid: #1a57e3;
-    --blue-light: #3d7ff5;
-    --blue-accent: #5b9eff;
-    --blue-glow: #6db3ff;
-    --gray-50: #f8fafc;
-    --gray-100: #f1f5f9;
-    --gray-200: #e2e8f0;
-    --gray-400: #94a3b8;
-    --gray-600: #475569;
-    --gray-800: #1e293b;
-    --gray-900: #0f172a;
-    --radius: 16px;
-  }
+:root {
+  --blue-dark: #0a1628;
+  --blue-mid: #1a57e3;
+  --blue-light: #3d7ff5;
+  --blue-accent: #5b9eff;
+  --gray-50: #f8fafc;
+  --gray-100: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-400: #94a3b8;
+  --gray-600: #475569;
+  --gray-700: #334155;
+  --gray-800: #1e293b;
+  --gray-900: #0f172a;
+}
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+  color: var(--gray-800);
+  background: var(--gray-50);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.6;
+}
 
-  html { scroll-behavior: smooth; }
+/* ── KEYFRAMES ── */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes slideInRow {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(22px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
-    color: var(--gray-800);
-    background: var(--gray-50);
-    -webkit-font-smoothing: antialiased;
-    line-height: 1.6;
-  }
+/* ── SCROLL ANIMATIONS ── */
+.animate-in {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.65s ease, transform 0.65s ease;
+}
+.animate-in.visible { opacity: 1; transform: translateY(0); }
+.d1 { transition-delay: 0.08s; }
+.d2 { transition-delay: 0.16s; }
+.d3 { transition-delay: 0.24s; }
+.d4 { transition-delay: 0.32s; }
+.d5 { transition-delay: 0.40s; }
+.d6 { transition-delay: 0.48s; }
+.d7 { transition-delay: 0.56s; }
+.d8 { transition-delay: 0.64s; }
 
-  /* ── HERO ── */
-  .hero {
-    background: linear-gradient(165deg, #0a1628 0%, #0f2247 35%, #142f5e 60%, #1a3d7a 100%);
-    color: white;
-    text-align: center;
-    padding: 80px 24px 100px;
-    position: relative;
-    overflow: hidden;
-  }
+/* ── HERO ── */
+.hero {
+  background: linear-gradient(165deg, #0a1628 0%, #0f2247 35%, #142f5e 60%, #1a3d7a 100%);
+  color: white;
+  text-align: center;
+  padding: 80px 24px 0;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+  background: radial-gradient(ellipse at 30% 20%, rgba(59,130,246,0.12) 0%, transparent 60%),
+              radial-gradient(ellipse at 70% 80%, rgba(99,163,255,0.08) 0%, transparent 50%);
+  pointer-events: none;
+}
+.hero-content { position: relative; z-index: 1; max-width: 760px; margin: 0 auto; }
 
-  .hero::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(ellipse at 30% 20%, rgba(59,130,246,0.12) 0%, transparent 60%),
-                radial-gradient(ellipse at 70% 80%, rgba(99,163,255,0.08) 0%, transparent 50%);
-    pointer-events: none;
-  }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 100px; padding: 6px 16px; font-size: 13px; font-weight: 500;
+  color: rgba(255,255,255,0.85); margin-bottom: 24px; backdrop-filter: blur(8px);
+  animation: fadeInUp 0.6s ease both; text-decoration: none;
+  transition: background 0.2s;
+}
+.hero-badge:hover { background: rgba(255,255,255,0.16); }
+.hero-badge svg { width: 15px; height: 15px; fill: #fbbf24; }
 
-  .hero-content { position: relative; z-index: 1; max-width: 720px; margin: 0 auto; }
+.hero-icon {
+  width: 120px; height: 120px; margin: 0 auto 28px;
+  filter: drop-shadow(0 12px 40px rgba(26,87,227,0.4));
+  animation: fadeInUp 0.6s 0.1s ease both;
+}
+.hero h1 {
+  font-size: 56px; font-weight: 700; letter-spacing: -1.5px; margin-bottom: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #c5daff 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  animation: fadeInUp 0.6s 0.2s ease both;
+}
+.hero .tagline {
+  font-size: 21px; font-weight: 400; color: rgba(255,255,255,0.75);
+  margin-bottom: 40px; line-height: 1.5;
+  animation: fadeInUp 0.6s 0.3s ease both;
+}
+.hero-cta { animation: fadeInUp 0.6s 0.4s ease both; }
 
-  .hero-icon {
-    width: 140px;
-    height: 140px;
-    margin: 0 auto 32px;
-    filter: drop-shadow(0 12px 40px rgba(26,87,227,0.3));
-  }
+.download-btn {
+  display: inline-flex; align-items: center; gap: 12px;
+  background: linear-gradient(135deg, var(--blue-mid) 0%, var(--blue-light) 100%);
+  color: white; text-decoration: none; font-size: 18px; font-weight: 600;
+  padding: 16px 36px; border-radius: 14px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 24px rgba(26,87,227,0.4);
+}
+.download-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(26,87,227,0.6); }
+.download-btn svg { width: 22px; height: 22px; fill: white; }
+.hero-req { margin-top: 14px; font-size: 13px; color: rgba(255,255,255,0.38); }
 
-  .hero h1 {
-    font-size: 52px;
-    font-weight: 700;
-    letter-spacing: -1.5px;
-    margin-bottom: 16px;
-    background: linear-gradient(135deg, #ffffff 0%, #c5daff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
+/* Hero floating window */
+.hero-mockup-wrap {
+  margin-top: 64px;
+  animation: fadeInUp 0.8s 0.5s ease both;
+  position: relative;
+}
+.hero-mockup-wrap::before {
+  content: '';
+  position: absolute; bottom: 0; left: 15%; right: 15%; height: 60px;
+  background: radial-gradient(ellipse, rgba(26,87,227,0.5) 0%, transparent 70%);
+  filter: blur(16px); z-index: 0;
+}
+.hero-app-window {
+  animation: float 5s ease-in-out infinite;
+  max-width: 780px; margin: 0 auto;
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 40px 100px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.07);
+  overflow: hidden; position: relative; z-index: 1;
+  background: white;
+}
 
-  .hero .tagline {
-    font-size: 22px;
-    font-weight: 400;
-    color: rgba(255,255,255,0.75);
-    margin-bottom: 40px;
-    line-height: 1.5;
-  }
+/* ── macOS WINDOW SYSTEM ── */
+.aw { background: #fff; border-radius: 12px; box-shadow: 0 20px 70px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06); overflow: hidden; }
+.aw-bar {
+  height: 40px;
+  background: linear-gradient(180deg, #f7f7f7 0%, #ebebeb 100%);
+  border-bottom: 1px solid #d1d1d1;
+  display: flex; align-items: center; padding: 0 14px; gap: 8px; flex-shrink: 0;
+}
+.aw-bar-center { flex: 1; text-align: center; font-size: 13px; font-weight: 500; color: #555; }
+.aw-bar-spacer { width: 46px; }
+.tl { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.tl-r { background: #ff5f57; } .tl-y { background: #febc2e; } .tl-g { background: #28c840; }
+.aw-body { display: flex; overflow: hidden; }
 
-  .download-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    background: linear-gradient(135deg, var(--blue-mid) 0%, var(--blue-light) 100%);
-    color: white;
-    text-decoration: none;
-    font-size: 18px;
-    font-weight: 600;
-    padding: 16px 36px;
-    border-radius: 14px;
-    transition: transform 0.2s, box-shadow 0.2s;
-    box-shadow: 0 4px 24px rgba(26,87,227,0.35);
-  }
+.aw-sidebar {
+  width: 178px; background: #f5f5f7; border-right: 1px solid #e3e3e7;
+  padding: 6px 0; font-size: 13px; flex-shrink: 0;
+}
+.aw-sec-hdr { padding: 10px 12px 3px; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #8e8e93; }
+.aw-si { display: flex; align-items: center; gap: 7px; padding: 5px 8px 5px 14px; color: #374151; border-radius: 6px; margin: 1px 5px; font-size: 13px; }
+.aw-si.active { background: #dbeafe; color: #1d4ed8; font-weight: 500; }
+.aw-si.sub { padding-left: 26px; font-size: 12px; color: #6b7280; }
+.aw-si.sub.active { background: #dbeafe; color: #1d4ed8; font-weight: 500; }
 
-  .download-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 32px rgba(26,87,227,0.5);
-  }
+.aw-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.aw-toolbar {
+  height: 36px; background: #fafafa; border-bottom: 1px solid #f0f0f0;
+  display: flex; align-items: center; padding: 0 12px; gap: 8px; flex-shrink: 0;
+}
+.aw-tb-btn { height: 22px; padding: 0 10px; border-radius: 5px; background: #e8e8e8; border: 1px solid #d0d0d0; font-size: 11px; color: #555; display: flex; align-items: center; gap: 4px; }
+.aw-tb-search { flex: 1; max-width: 180px; height: 22px; background: white; border: 1px solid #d4d4d4; border-radius: 5px; display: flex; align-items: center; padding: 0 7px; gap: 4px; font-size: 11px; color: #bbb; }
 
-  .download-btn svg { width: 22px; height: 22px; fill: white; }
+.aw-file-hdr { display: grid; grid-template-columns: 1fr 90px 72px; padding: 5px 12px; background: #f8f8f8; border-bottom: 1px solid #ebebeb; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: #9ca3af; flex-shrink: 0; }
+.aw-fr { display: grid; grid-template-columns: 1fr 90px 72px; padding: 7px 12px; border-bottom: 1px solid #f3f3f3; font-size: 12.5px; color: #374151; align-items: center; animation: slideInRow 0.35s ease both; }
+.aw-fr:hover { background: #f9fafb; }
+.aw-fr.sel { background: #eff6ff; }
+.aw-fr:nth-child(1) { animation-delay: 0.05s; }
+.aw-fr:nth-child(2) { animation-delay: 0.14s; }
+.aw-fr:nth-child(3) { animation-delay: 0.23s; }
+.aw-fr:nth-child(4) { animation-delay: 0.32s; }
+.aw-fr:nth-child(5) { animation-delay: 0.41s; }
+.aw-fname { display: flex; align-items: center; gap: 9px; }
+.aw-fmeta { font-size: 11px; color: #9ca3af; }
 
-  .hero-req {
-    margin-top: 16px;
-    font-size: 14px;
-    color: rgba(255,255,255,0.4);
-  }
+/* File icons */
+.fi { width: 26px; height: 26px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 800; color: white; flex-shrink: 0; letter-spacing: -0.2px; }
+.fi-xl { background: linear-gradient(135deg, #21a366, #107c41); }
+.fi-pp { background: linear-gradient(135deg, #d95e40, #b7472a); }
+.fi-pd { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+.fi-wd { background: linear-gradient(135deg, #2b8cef, #1565c0); }
+.fi-fo { background: linear-gradient(135deg, #5b9eff, #1a57e3); }
 
-  /* ── PROBLEM ── */
-  .problem {
-    padding: 80px 24px;
-    text-align: center;
-    max-width: 800px;
-    margin: 0 auto;
-  }
+/* Search bar */
+.aw-searchbar {
+  display: flex; align-items: center; gap: 8px;
+  background: white; border: 1.5px solid #3b82f6; border-radius: 9px;
+  padding: 7px 13px; margin: 10px 12px 6px; font-size: 13px; color: #374151;
+}
+.aw-cursor { display: inline-block; width: 2px; height: 15px; background: #3b82f6; animation: blink 1s step-end infinite; vertical-align: middle; margin-left: 1px; }
+.aw-scopes { display: flex; gap: 5px; padding: 0 12px 10px; flex-wrap: wrap; }
+.aw-pill { padding: 3px 11px; border-radius: 100px; font-size: 11.5px; font-weight: 500; background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+.aw-pill.on { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+.aw-sr { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid #f3f3f3; animation: slideInRow 0.35s ease both; }
+.aw-sr:nth-child(1) { animation-delay: 0.1s; }
+.aw-sr:nth-child(2) { animation-delay: 0.2s; }
+.aw-sr:nth-child(3) { animation-delay: 0.3s; }
+.aw-sr-info { flex: 1; }
+.aw-sr-name { font-size: 13px; color: #1f2937; font-weight: 500; }
+.aw-sr-path { font-size: 11px; color: #9ca3af; }
+.aw-sr-date { font-size: 11px; color: #9ca3af; white-space: nowrap; }
 
-  .problem h2 {
-    font-size: 36px;
-    font-weight: 700;
-    letter-spacing: -0.8px;
-    color: var(--gray-900);
-    margin-bottom: 20px;
-  }
+/* Grid view */
+.aw-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 12px; }
+.aw-gc { border: 1.5px solid #f0f0f0; border-radius: 10px; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center; }
+.aw-gc.sel { border-color: #3b82f6; background: #eff6ff; }
+.aw-gc .fi { width: 34px; height: 34px; font-size: 9px; border-radius: 6px; }
+.aw-gc-lbl { font-size: 11px; font-weight: 500; color: #374151; line-height: 1.3; word-break: break-word; }
 
-  .problem p {
-    font-size: 19px;
-    color: var(--gray-600);
-    line-height: 1.7;
-  }
+/* Inspector */
+.aw-inspector { width: 190px; background: #fafafa; border-left: 1px solid #e3e3e7; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
+.aw-insp-icon { width: 44px; height: 44px; border-radius: 8px; margin: 0 auto 2px; }
+.aw-insp-title { font-size: 12px; font-weight: 600; color: #1f2937; text-align: center; word-break: break-all; line-height: 1.3; }
+.aw-insp-row { display: flex; justify-content: space-between; font-size: 11px; gap: 6px; }
+.aw-insp-lbl { color: #9ca3af; font-weight: 500; }
+.aw-insp-val { color: #374151; text-align: right; }
+.aw-insp-divider { height: 1px; background: #ebebeb; }
+.aw-insp-btn { background: var(--blue-mid); color: white; border: none; border-radius: 7px; padding: 7px 10px; font-size: 12px; font-weight: 500; cursor: pointer; text-align: center; margin-top: auto; }
 
-  /* ── FEATURES (Bento Grid) ── */
-  .features {
-    padding: 0 24px 100px;
-    max-width: 1100px;
-    margin: 0 auto;
-  }
+/* Tabs */
+.aw-tabs { display: flex; align-items: center; background: #f0f0f0; border-bottom: 1px solid #d8d8d8; padding: 0 10px; gap: 1px; overflow-x: auto; flex-shrink: 0; }
+.aw-tab { display: flex; align-items: center; gap: 5px; padding: 7px 12px 6px; font-size: 12px; font-weight: 500; color: #6b7280; white-space: nowrap; border-bottom: 2px solid transparent; margin-bottom: -1px; border-radius: 6px 6px 0 0; }
+.aw-tab.on { color: #1d4ed8; border-bottom-color: var(--blue-mid); background: white; }
+.aw-tab-x { font-size: 11px; color: #bbb; margin-left: 2px; }
+.aw-tab-add { font-size: 18px; color: #aaa; padding: 2px 6px; margin-left: 2px; }
 
-  .features h2 {
-    text-align: center;
-    font-size: 36px;
-    font-weight: 700;
-    letter-spacing: -0.8px;
-    color: var(--gray-900);
-    margin-bottom: 16px;
-  }
+/* Sign in */
+.aw-signin { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px 20px; gap: 14px; text-align: center; }
+.aw-signin-title { font-size: 16px; font-weight: 600; color: #1f2937; }
+.aw-signin-sub { font-size: 13px; color: #6b7280; }
+.aw-ms-btn { display: flex; align-items: center; gap: 10px; padding: 10px 18px; background: white; border: 1.5px solid #d0d0d0; border-radius: 4px; font-size: 13px; font-weight: 500; color: #3c4043; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 
-  .features .subtitle {
-    text-align: center;
-    font-size: 18px;
-    color: var(--gray-600);
-    margin-bottom: 48px;
-  }
+/* ── PROBLEM ── */
+.problem { padding: 80px 24px; text-align: center; max-width: 800px; margin: 0 auto; }
+.problem h2 { font-size: 36px; font-weight: 700; letter-spacing: -0.8px; color: var(--gray-900); margin-bottom: 20px; }
+.problem p { font-size: 19px; color: var(--gray-600); line-height: 1.7; }
 
-  .bento-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: auto;
-    gap: 20px;
-  }
+/* ── HOW IT WORKS ── */
+.how { padding: 100px 24px; background: white; border-top: 1px solid var(--gray-200); border-bottom: 1px solid var(--gray-200); }
+.section-header { text-align: center; max-width: 600px; margin: 0 auto 80px; }
+.section-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--blue-mid); margin-bottom: 12px; }
+.section-header h2 { font-size: 36px; font-weight: 700; letter-spacing: -0.8px; color: var(--gray-900); margin-bottom: 14px; }
+.section-header p { font-size: 18px; color: var(--gray-600); }
 
-  .bento-item {
-    background: white;
-    border-radius: 20px;
-    padding: 36px 32px;
-    position: relative;
-    overflow: hidden;
-    border: 1px solid var(--gray-200);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-  }
+.step { display: grid; grid-template-columns: 1fr 1fr; gap: 60px 80px; align-items: center; max-width: 1100px; margin: 0 auto 80px; }
+.step:last-child { margin-bottom: 0; }
+.step-num { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 50%; background: var(--blue-mid); color: white; font-size: 15px; font-weight: 700; margin-bottom: 16px; }
+.step-text h3 { font-size: 28px; font-weight: 700; letter-spacing: -0.4px; color: var(--gray-900); margin-bottom: 12px; line-height: 1.25; }
+.step-text p { font-size: 17px; color: var(--gray-600); line-height: 1.7; }
+.step-mockup .aw { font-size: 12px; }
+.step-mockup .aw-bar { height: 34px; }
+.step-mockup .aw-sidebar { width: 150px; }
+.step-mockup .aw-si { font-size: 12px; }
+.step-mockup .aw-fr { font-size: 12px; padding: 6px 10px; }
+.step-mockup .aw-searchbar { font-size: 12px; margin: 8px 10px 4px; padding: 6px 10px; }
+.step-mockup .aw-scopes { padding: 0 10px 8px; }
+.step-mockup .aw-sr { padding: 7px 10px; }
+.step-mockup .aw-sr-name { font-size: 12px; }
 
-  .bento-item:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 16px 48px rgba(15,23,42,0.10);
-  }
+/* ── FEATURES ── */
+.features { padding: 100px 24px; max-width: 1100px; margin: 0 auto; }
+.features h2 { text-align: center; font-size: 36px; font-weight: 700; letter-spacing: -0.8px; color: var(--gray-900); margin-bottom: 16px; }
+.features .subtitle { text-align: center; font-size: 18px; color: var(--gray-600); margin-bottom: 48px; }
+.bento-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.bento-item { background: white; border-radius: 20px; padding: 36px 32px; position: relative; overflow: hidden; border: 1px solid var(--gray-200); transition: transform 0.25s ease, box-shadow 0.25s ease; }
+.bento-item:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(15,23,42,0.10); }
+.bento-wide { grid-column: span 2; }
+.bento-blue { background: linear-gradient(145deg, #eff6ff 0%, #dbeafe 100%); }
+.bento-indigo { background: linear-gradient(145deg, #eef2ff 0%, #e0e7ff 100%); }
+.bento-emerald { background: linear-gradient(145deg, #ecfdf5 0%, #d1fae5 100%); }
+.bento-amber { background: linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%); }
+.bento-violet { background: linear-gradient(145deg, #f5f3ff 0%, #ede9fe 100%); }
+.bento-teal { background: linear-gradient(145deg, #f0fdfa 0%, #ccfbf1 100%); }
+.bento-slate { background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%); }
+.bento-rose { background: linear-gradient(145deg, #fff1f2 0%, #ffe4e6 100%); }
+.bento-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.04); }
+.bento-blue .bento-icon svg { fill: #2563eb; }
+.bento-indigo .bento-icon svg { fill: #4f46e5; }
+.bento-emerald .bento-icon svg { fill: #059669; }
+.bento-amber .bento-icon svg { fill: #d97706; }
+.bento-violet .bento-icon svg { fill: #7c3aed; }
+.bento-teal .bento-icon svg { fill: #0d9488; }
+.bento-slate .bento-icon svg { fill: #475569; }
+.bento-rose .bento-icon svg { fill: #e11d48; }
+.bento-item h3 { font-size: 20px; font-weight: 650; color: var(--gray-900); margin-bottom: 10px; letter-spacing: -0.3px; }
+.bento-item p { font-size: 15px; color: var(--gray-600); line-height: 1.6; }
+.bento-accent { color: var(--gray-800); font-weight: 500; }
 
-  /* Spanning rules */
-  .bento-wide { grid-column: span 2; }
+/* ── SEE IT IN ACTION ── */
+.screenshots { padding: 100px 24px; background: var(--gray-100); border-top: 1px solid var(--gray-200); }
+.screenshots h2 { text-align: center; font-size: 36px; font-weight: 700; letter-spacing: -0.8px; color: var(--gray-900); margin-bottom: 16px; }
+.screenshots .subtitle { text-align: center; font-size: 18px; color: var(--gray-600); margin-bottom: 60px; }
+.mockups-grid { max-width: 1160px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+.mockup-item { display: flex; flex-direction: column; gap: 14px; }
+.mockup-label { font-size: 14px; font-weight: 500; color: var(--gray-600); text-align: center; }
 
-  /* Color themes — soft pastel tints */
-  .bento-blue { background: linear-gradient(145deg, #eff6ff 0%, #dbeafe 100%); }
-  .bento-indigo { background: linear-gradient(145deg, #eef2ff 0%, #e0e7ff 100%); }
-  .bento-emerald { background: linear-gradient(145deg, #ecfdf5 0%, #d1fae5 100%); }
-  .bento-amber { background: linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%); }
-  .bento-violet { background: linear-gradient(145deg, #f5f3ff 0%, #ede9fe 100%); }
-  .bento-teal { background: linear-gradient(145deg, #f0fdfa 0%, #ccfbf1 100%); }
-  .bento-slate { background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%); }
-  .bento-rose { background: linear-gradient(145deg, #fff1f2 0%, #ffe4e6 100%); }
+/* ── OPEN SOURCE ── */
+.opensource { padding: 80px 24px; background: white; border-top: 1px solid var(--gray-200); border-bottom: 1px solid var(--gray-200); }
+.opensource-inner { max-width: 680px; margin: 0 auto; text-align: center; }
+.os-badge { display: inline-flex; align-items: center; gap: 8px; background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 100px; padding: 6px 16px; font-size: 14px; font-weight: 600; color: #16a34a; margin-bottom: 24px; }
+.opensource h2 { font-size: 36px; font-weight: 700; letter-spacing: -0.8px; color: var(--gray-900); margin-bottom: 14px; }
+.opensource > .opensource-inner > p { font-size: 18px; color: var(--gray-600); margin-bottom: 40px; line-height: 1.6; }
+.os-pillars { display: flex; justify-content: center; gap: 40px; margin-bottom: 40px; flex-wrap: wrap; }
+.os-pillar { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 500; color: var(--gray-700); }
+.os-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
+.github-btn { display: inline-flex; align-items: center; gap: 10px; background: var(--gray-900); color: white; text-decoration: none; font-size: 16px; font-weight: 600; padding: 14px 32px; border-radius: 12px; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 4px 16px rgba(15,23,42,0.2); }
+.github-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(15,23,42,0.3); }
+.github-btn svg { width: 20px; height: 20px; fill: white; }
 
-  .bento-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-    background: white;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    border: 1px solid rgba(0,0,0,0.04);
-  }
+/* ── SHORTCUTS ── */
+.shortcuts { padding: 80px 24px 100px; text-align: center; background: white; }
+.shortcuts h2 { font-size: 36px; font-weight: 700; letter-spacing: -0.8px; color: var(--gray-900); margin-bottom: 16px; }
+.shortcuts .subtitle { font-size: 18px; color: var(--gray-600); margin-bottom: 48px; }
+.shortcuts-grid { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--gray-200); border-radius: 16px; overflow: hidden; }
+.shortcut-row { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: 1px solid var(--gray-200); text-align: left; background: white; }
+.shortcut-row:nth-last-child(-n+2) { border-bottom: none; }
+.shortcut-row:nth-child(odd) { border-right: 1px solid var(--gray-200); }
+.shortcut-row kbd { display: inline-block; min-width: 64px; padding: 6px 12px; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif; font-size: 14px; font-weight: 600; color: var(--gray-800); text-align: center; box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+.shortcut-row span { font-size: 15px; color: var(--gray-600); }
 
-  .bento-blue .bento-icon svg { fill: #2563eb; }
-  .bento-indigo .bento-icon svg { fill: #4f46e5; }
-  .bento-emerald .bento-icon svg { fill: #059669; }
-  .bento-amber .bento-icon svg { fill: #d97706; }
-  .bento-violet .bento-icon svg { fill: #7c3aed; }
-  .bento-teal .bento-icon svg { fill: #0d9488; }
-  .bento-slate .bento-icon svg { fill: #475569; }
-  .bento-rose .bento-icon svg { fill: #e11d48; }
+/* ── CTA ── */
+.cta { padding: 100px 24px; text-align: center; background: linear-gradient(165deg, #0a1628 0%, #0f2247 35%, #142f5e 60%, #1a3d7a 100%); color: white; position: relative; overflow: hidden; }
+.cta::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(ellipse at 60% 40%, rgba(59,130,246,0.1) 0%, transparent 60%); pointer-events: none; }
+.cta-content { position: relative; z-index: 1; }
+.cta h2 { font-size: 40px; font-weight: 700; letter-spacing: -1px; margin-bottom: 16px; }
+.cta p { font-size: 18px; color: rgba(255,255,255,0.6); margin-bottom: 36px; }
+.cta .download-btn { background: white; color: var(--blue-mid); box-shadow: 0 4px 24px rgba(0,0,0,0.15); }
+.cta .download-btn:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
+.cta .download-btn svg { fill: var(--blue-mid); }
 
-  .bento-item h3 {
-    font-size: 20px;
-    font-weight: 650;
-    color: var(--gray-900);
-    margin-bottom: 10px;
-    letter-spacing: -0.3px;
-  }
+footer { text-align: center; padding: 28px 24px; font-size: 13px; color: var(--gray-400); background: var(--gray-900); display: flex; align-items: center; justify-content: center; gap: 24px; flex-wrap: wrap; }
+footer a { color: var(--blue-accent); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
 
-  .bento-item p {
-    font-size: 15px;
-    color: var(--gray-600);
-    line-height: 1.6;
-  }
-
-  .bento-item .bento-accent {
-    color: var(--gray-800);
-    font-weight: 500;
-  }
-
-  /* ── SCREENSHOTS ── */
-  .screenshots {
-    padding: 80px 24px 100px;
-    background: var(--gray-100);
-  }
-
-  .screenshots h2 {
-    text-align: center;
-    font-size: 36px;
-    font-weight: 700;
-    letter-spacing: -0.8px;
-    color: var(--gray-900);
-    margin-bottom: 16px;
-  }
-
-  .screenshots .subtitle {
-    text-align: center;
-    font-size: 18px;
-    color: var(--gray-600);
-    margin-bottom: 56px;
-  }
-
-  .screenshots-grid {
-    max-width: 1100px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 40px;
-  }
-
-  .screenshot-item { text-align: center; }
-
-  .screenshot-frame {
-    background: #1e1e1e;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 20px 60px rgba(15,23,42,0.18);
-  }
-
-  .screenshot-titlebar {
-    height: 36px;
-    background: linear-gradient(180deg, #3a3a3c, #2c2c2e);
-    display: flex;
-    align-items: center;
-    padding: 0 14px;
-    gap: 8px;
-  }
-
-  .screenshot-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-  }
-
-  .screenshot-dot.red { background: #ff5f57; }
-  .screenshot-dot.yellow { background: #febc2e; }
-  .screenshot-dot.green { background: #28c840; }
-
-  .screenshot-frame img {
-    width: 100%;
-    display: block;
-  }
-
-  .screenshot-label {
-    margin-top: 16px;
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--gray-600);
-  }
-
-  /* ── CTA FOOTER ── */
-  .cta {
-    padding: 100px 24px;
-    text-align: center;
-    background: linear-gradient(165deg, #0a1628 0%, #0f2247 35%, #142f5e 60%, #1a3d7a 100%);
-    color: white;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .cta::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(ellipse at 60% 40%, rgba(59,130,246,0.1) 0%, transparent 60%);
-    pointer-events: none;
-  }
-
-  .cta-content { position: relative; z-index: 1; }
-
-  .cta h2 {
-    font-size: 40px;
-    font-weight: 700;
-    letter-spacing: -1px;
-    margin-bottom: 16px;
-  }
-
-  .cta p {
-    font-size: 18px;
-    color: rgba(255,255,255,0.6);
-    margin-bottom: 36px;
-  }
-
-  .cta .download-btn {
-    background: white;
-    color: var(--blue-mid);
-    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
-  }
-
-  .cta .download-btn:hover {
-    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-  }
-
-  .cta .download-btn svg { fill: var(--blue-mid); }
-
-  footer {
-    text-align: center;
-    padding: 24px;
-    font-size: 13px;
-    color: var(--gray-400);
-    background: var(--gray-900);
-  }
-
-  footer a { color: var(--blue-accent); text-decoration: none; }
-  footer a:hover { text-decoration: underline; }
-
-  /* ── SHORTCUTS ── */
-  .shortcuts {
-    padding: 80px 24px 100px;
-    text-align: center;
-  }
-
-  .shortcuts h2 {
-    font-size: 36px;
-    font-weight: 700;
-    letter-spacing: -0.8px;
-    color: var(--gray-900);
-    margin-bottom: 16px;
-  }
-
-  .shortcuts .subtitle {
-    font-size: 18px;
-    color: var(--gray-600);
-    margin-bottom: 48px;
-  }
-
-  .shortcuts-grid {
-    max-width: 560px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-  }
-
-  .shortcut-row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--gray-200);
-    text-align: left;
-  }
-
-  .shortcut-row:nth-last-child(-n+2) { border-bottom: none; }
-
-  .shortcut-row kbd {
-    display: inline-block;
-    min-width: 64px;
-    padding: 6px 12px;
-    background: white;
-    border: 1px solid var(--gray-200);
-    border-radius: 8px;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--gray-800);
-    text-align: center;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-  }
-
-  .shortcut-row span {
-    font-size: 15px;
-    color: var(--gray-600);
-  }
-
-  /* ── RESPONSIVE ── */
-  @media (max-width: 768px) {
-    .hero { padding: 60px 20px 72px; }
-    .hero h1 { font-size: 36px; }
-    .hero .tagline { font-size: 18px; }
-    .hero-icon { width: 100px; height: 100px; }
-    .bento-grid { grid-template-columns: 1fr; gap: 16px; }
-    .bento-wide { grid-column: span 1; }
-    .screenshots-grid { grid-template-columns: 1fr; gap: 32px; }
-    .problem h2, .screenshots h2, .cta h2 { font-size: 28px; }
-    .problem p { font-size: 17px; }
-    .download-btn { font-size: 16px; padding: 14px 28px; }
-    .shortcuts-grid { grid-template-columns: 1fr; }
-  }
+/* ── RESPONSIVE ── */
+@media (max-width: 960px) {
+  .step { grid-template-columns: 1fr; gap: 36px; }
+  .mockups-grid { grid-template-columns: 1fr; max-width: 600px; }
+  .bento-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 768px) {
+  .hero h1 { font-size: 36px; }
+  .hero .tagline { font-size: 18px; }
+  .hero-icon { width: 100px; height: 100px; }
+  .bento-grid { grid-template-columns: 1fr; }
+  .bento-wide { grid-column: span 1; }
+  .problem h2, .section-header h2, .features h2, .screenshots h2, .opensource h2, .shortcuts h2, .cta h2 { font-size: 28px; }
+  .problem p { font-size: 17px; }
+  .download-btn { font-size: 16px; padding: 14px 28px; }
+  .shortcuts-grid { grid-template-columns: 1fr; }
+  .shortcut-row:nth-child(odd) { border-right: none; }
+  .shortcut-row:nth-last-child(-n+2) { border-bottom: 1px solid var(--gray-200); }
+  .shortcut-row:last-child { border-bottom: none; }
+  .os-pillars { flex-direction: column; align-items: center; gap: 16px; }
+  .aw-sidebar { width: 130px; }
+  .aw-inspector { width: 150px; }
+}
 </style>
 </head>
 <body>
@@ -442,133 +378,284 @@
 <!-- ════════════ HERO ════════════ -->
 <section class="hero">
   <div class="hero-content">
+    <a href="https://github.com/YannickAaron/BetterMSFile" class="hero-badge" target="_blank">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844a9.59 9.59 0 012.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+      ★ Open Source on GitHub
+    </a>
+
     <div class="hero-icon">
-      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" width="140" height="140">
+      <svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" width="120" height="120">
         <defs>
-          <filter id="fCardShadow"><feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#08112b" flood-opacity="0.52"/></filter>
+          <filter id="fCS"><feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#08112b" flood-opacity="0.52"/></filter>
           <filter id="fDoc"><feDropShadow dx="3" dy="7" stdDeviation="10" flood-color="#0c1a3a" flood-opacity="0.20"/></filter>
-          <filter id="fDocBack"><feDropShadow dx="5" dy="8" stdDeviation="8" flood-color="#0c1a3a" flood-opacity="0.14"/></filter>
-          <filter id="fFolder"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#0c1a3a" flood-opacity="0.38"/></filter>
+          <filter id="fDocB"><feDropShadow dx="5" dy="8" stdDeviation="8" flood-color="#0c1a3a" flood-opacity="0.14"/></filter>
+          <filter id="fFol"><feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#0c1a3a" flood-opacity="0.38"/></filter>
           <filter id="fLens"><feDropShadow dx="4" dy="10" stdDeviation="14" flood-color="#050c1e" flood-opacity="0.60"/></filter>
-          <filter id="fHandle"><feDropShadow dx="2" dy="6" stdDeviation="7" flood-color="#050c1e" flood-opacity="0.50"/></filter>
-          <filter id="fBadge"><feDropShadow dx="2" dy="5" stdDeviation="7" flood-color="#0c1a3a" flood-opacity="0.40"/></filter>
+          <filter id="fHnd"><feDropShadow dx="2" dy="6" stdDeviation="7" flood-color="#050c1e" flood-opacity="0.50"/></filter>
+          <filter id="fBdg"><feDropShadow dx="2" dy="5" stdDeviation="7" flood-color="#0c1a3a" flood-opacity="0.40"/></filter>
           <linearGradient id="gCard" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f2f5fc"/><stop offset="100%" stop-color="#d8dff0"/></linearGradient>
-          <radialGradient id="gCardSheen" cx="35%" cy="18%" r="65%"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.65"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0.00"/></radialGradient>
+          <radialGradient id="gSheen" cx="35%" cy="18%" r="65%"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.65"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
           <linearGradient id="gDoc" x1="0" y1="0" x2="0.08" y2="1"><stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#edf1f9"/></linearGradient>
-          <linearGradient id="gDocBack" x1="0" y1="0" x2="0.05" y2="1"><stop offset="0%" stop-color="#f0f4fb"/><stop offset="100%" stop-color="#dde3f2"/></linearGradient>
-          <linearGradient id="gFolderBody" x1="0.05" y1="0" x2="0.92" y2="1"><stop offset="0%" stop-color="#5b9eff"/><stop offset="42%" stop-color="#3d7ff5"/><stop offset="100%" stop-color="#1a57e3"/></linearGradient>
-          <linearGradient id="gFolderTab" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0%" stop-color="#4d90f6"/><stop offset="100%" stop-color="#1e5fe2"/></linearGradient>
-          <linearGradient id="gFolderBack" x1="0" y1="0" x2="0.2" y2="1"><stop offset="0%" stop-color="#3a78f0"/><stop offset="100%" stop-color="#1248cc"/></linearGradient>
-          <linearGradient id="gFolderLeftEdge" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1a50d4" stop-opacity="0.40"/><stop offset="100%" stop-color="#1a50d4" stop-opacity="0.00"/></linearGradient>
-          <linearGradient id="gFolderTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0.00"/></linearGradient>
-          <linearGradient id="gFolderBottom" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#000000" stop-opacity="0.00"/><stop offset="100%" stop-color="#000000" stop-opacity="0.18"/></linearGradient>
+          <linearGradient id="gDocB" x1="0" y1="0" x2="0.05" y2="1"><stop offset="0%" stop-color="#f0f4fb"/><stop offset="100%" stop-color="#dde3f2"/></linearGradient>
+          <linearGradient id="gFolB" x1="0.05" y1="0" x2="0.92" y2="1"><stop offset="0%" stop-color="#5b9eff"/><stop offset="42%" stop-color="#3d7ff5"/><stop offset="100%" stop-color="#1a57e3"/></linearGradient>
+          <linearGradient id="gFolT" x1="0" y1="0" x2="0.3" y2="1"><stop offset="0%" stop-color="#4d90f6"/><stop offset="100%" stop-color="#1e5fe2"/></linearGradient>
+          <linearGradient id="gFolBk" x1="0" y1="0" x2="0.2" y2="1"><stop offset="0%" stop-color="#3a78f0"/><stop offset="100%" stop-color="#1248cc"/></linearGradient>
           <linearGradient id="gRing" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0%" stop-color="#3a3d46"/><stop offset="50%" stop-color="#1e2029"/><stop offset="100%" stop-color="#14161d"/></linearGradient>
           <radialGradient id="gLens" cx="35%" cy="30%" r="68%"><stop offset="0%" stop-color="#e4f3ff"/><stop offset="28%" stop-color="#aed4f7"/><stop offset="62%" stop-color="#5fa8e8"/><stop offset="100%" stop-color="#2b75c9"/></radialGradient>
-          <radialGradient id="gLensDepth" cx="60%" cy="65%" r="50%"><stop offset="0%" stop-color="#1650a8" stop-opacity="0.45"/><stop offset="100%" stop-color="#1650a8" stop-opacity="0.00"/></radialGradient>
-          <linearGradient id="gHandle" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#44474f"/><stop offset="45%" stop-color="#25272e"/><stop offset="100%" stop-color="#16181e"/></linearGradient>
-          <linearGradient id="gFinderLeft" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1d60e8"/><stop offset="100%" stop-color="#2570f0"/></linearGradient>
-          <linearGradient id="gFinderRight" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#4592ff"/><stop offset="100%" stop-color="#5aa8ff"/></linearGradient>
-          <linearGradient id="gSPBack" x1="0" y1="0" x2="0.7" y2="1"><stop offset="0%" stop-color="#0f8a8f"/><stop offset="100%" stop-color="#076b70"/></linearGradient>
-          <radialGradient id="gSPBubble" cx="38%" cy="35%" r="62%"><stop offset="0%" stop-color="#4ce8cb"/><stop offset="100%" stop-color="#1fc9ae"/></radialGradient>
+          <radialGradient id="gLensD" cx="60%" cy="65%" r="50%"><stop offset="0%" stop-color="#1650a8" stop-opacity="0.45"/><stop offset="100%" stop-color="#1650a8" stop-opacity="0"/></radialGradient>
+          <linearGradient id="gHnd" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#44474f"/><stop offset="45%" stop-color="#25272e"/><stop offset="100%" stop-color="#16181e"/></linearGradient>
+          <linearGradient id="gFL" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#1d60e8"/><stop offset="100%" stop-color="#2570f0"/></linearGradient>
+          <linearGradient id="gFR" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#4592ff"/><stop offset="100%" stop-color="#5aa8ff"/></linearGradient>
+          <linearGradient id="gSPB" x1="0" y1="0" x2="0.7" y2="1"><stop offset="0%" stop-color="#0f8a8f"/><stop offset="100%" stop-color="#076b70"/></linearGradient>
+          <radialGradient id="gSPBub" cx="38%" cy="35%" r="62%"><stop offset="0%" stop-color="#4ce8cb"/><stop offset="100%" stop-color="#1fc9ae"/></radialGradient>
           <linearGradient id="gOD1" x1="0" y1="0.5" x2="1" y2="1"><stop offset="0%" stop-color="#3fa9f8"/><stop offset="100%" stop-color="#1478e8"/></linearGradient>
           <linearGradient id="gOD2" x1="0" y1="0" x2="0.5" y2="1"><stop offset="0%" stop-color="#62bcff"/><stop offset="100%" stop-color="#2590f5"/></linearGradient>
           <clipPath id="cpSP"><rect x="0" y="0" width="52" height="52" rx="11"/></clipPath>
-          <clipPath id="cpFolder"><path d="M82,208 L428,208 Q442,208 442,222 L442,402 Q442,416 428,416 L96,416 Q82,416 82,402 Z"/></clipPath>
+          <clipPath id="cpFol"><path d="M82,208 L428,208 Q442,208 442,222 L442,402 Q442,416 428,416 L96,416 Q82,416 82,402 Z"/></clipPath>
         </defs>
-        <rect x="18" y="18" width="476" height="476" rx="92" fill="url(#gCard)" filter="url(#fCardShadow)"/>
-        <rect x="18" y="18" width="476" height="476" rx="92" fill="url(#gCardSheen)"/>
+        <rect x="18" y="18" width="476" height="476" rx="92" fill="url(#gCard)" filter="url(#fCS)"/>
+        <rect x="18" y="18" width="476" height="476" rx="92" fill="url(#gSheen)"/>
         <rect x="18" y="18" width="476" height="476" rx="92" fill="none" stroke="white" stroke-width="1.5" stroke-opacity="0.7"/>
-        <g filter="url(#fDocBack)"><rect x="180" y="58" width="196" height="224" rx="14" fill="url(#gDocBack)"/><rect x="180" y="58" width="12" height="224" rx="6" fill="#c8d0e8" opacity="0.35"/></g>
-        <g filter="url(#fDoc)"><rect x="148" y="68" width="210" height="228" rx="14" fill="url(#gDoc)"/><rect x="148" y="68" width="14" height="228" rx="7" fill="#b8c4de" opacity="0.25"/><rect x="148" y="68" width="210" height="8" rx="4" fill="white" opacity="0.80"/></g>
-        <g transform="translate(163, 105)"><g opacity="0.82"><ellipse cx="18" cy="30" rx="17" ry="13" fill="url(#gOD1)"/><rect x="2" y="22" width="30" height="14" fill="url(#gOD1)"/><ellipse cx="30" cy="23" rx="14" ry="10" fill="url(#gOD1)"/></g><ellipse cx="50" cy="36" rx="21" ry="15" fill="url(#gOD2)"/><ellipse cx="34" cy="26" rx="20" ry="16" fill="url(#gOD2)"/><ellipse cx="62" cy="30" rx="12" ry="10" fill="url(#gOD2)"/><rect x="13" y="26" width="62" height="22" fill="url(#gOD2)"/><rect x="13" y="40" width="62" height="8" rx="4" fill="url(#gOD2)"/><ellipse cx="30" cy="19" rx="12" ry="7" fill="white" opacity="0.25" transform="rotate(-22 30 19)"/><ellipse cx="52" cy="22" rx="8" ry="4.5" fill="white" opacity="0.18" transform="rotate(-18 52 22)"/></g>
-        <g transform="translate(266, 99)"><rect x="0" y="0" width="52" height="52" rx="11" fill="url(#gSPBack)" clip-path="url(#cpSP)"/><rect x="0" y="0" width="52" height="20" rx="5" fill="white" opacity="0.10"/><text x="18" y="36" font-family="'Segoe UI','Arial Black',Arial,sans-serif" font-weight="800" font-size="28" fill="white" letter-spacing="-1">S</text><circle cx="41" cy="41" r="19" fill="url(#gSPBubble)"/><circle cx="41" cy="41" r="13" fill="none" stroke="white" stroke-width="2" stroke-opacity="0.20"/><ellipse cx="36" cy="35" rx="7" ry="4.5" fill="white" opacity="0.28" transform="rotate(-30 36 35)"/></g>
+        <g filter="url(#fDocB)"><rect x="180" y="58" width="196" height="224" rx="14" fill="url(#gDocB)"/></g>
+        <g filter="url(#fDoc)"><rect x="148" y="68" width="210" height="228" rx="14" fill="url(#gDoc)"/></g>
+        <g transform="translate(163,105)"><ellipse cx="18" cy="30" rx="17" ry="13" fill="url(#gOD1)" opacity="0.82"/><rect x="2" y="22" width="30" height="14" fill="url(#gOD1)" opacity="0.82"/><ellipse cx="50" cy="36" rx="21" ry="15" fill="url(#gOD2)"/><ellipse cx="34" cy="26" rx="20" ry="16" fill="url(#gOD2)"/><rect x="13" y="26" width="62" height="22" fill="url(#gOD2)"/></g>
+        <g transform="translate(266,99)"><rect x="0" y="0" width="52" height="52" rx="11" fill="url(#gSPB)" clip-path="url(#cpSP)"/><text x="18" y="36" font-family="Arial Black,Arial,sans-serif" font-weight="800" font-size="28" fill="white" letter-spacing="-1">S</text><circle cx="41" cy="41" r="19" fill="url(#gSPBub)"/></g>
         <rect x="172" y="200" width="148" height="7" rx="3.5" fill="#bcc8e0" opacity="0.85"/>
         <rect x="172" y="216" width="112" height="7" rx="3.5" fill="#bcc8e0" opacity="0.65"/>
-        <path d="M370,195 L428,195 Q442,195 442,209 L442,260 L370,260 Z" fill="url(#gFolderBack)" filter="url(#fFolder)"/>
-        <g filter="url(#fFolder)"><path d="M82,208 L82,190 Q82,177 95,177 L202,177 Q213,177 218,168 L228,152 Q233,142 244,142 L272,142 Q284,142 284,155 L284,177 L284,208 Z" fill="url(#gFolderTab)"/><path d="M82,208 L428,208 Q442,208 442,222 L442,402 Q442,416 428,416 L96,416 Q82,416 82,402 Z" fill="url(#gFolderBody)"/></g>
-        <g clip-path="url(#cpFolder)"><rect x="82" y="208" width="360" height="40" fill="url(#gFolderTop)"/><rect x="82" y="208" width="90" height="210" fill="url(#gFolderLeftEdge)"/><rect x="82" y="350" width="360" height="66" fill="url(#gFolderBottom)"/><path d="M82,208 L320,208 L260,290 L82,290 Z" fill="white" opacity="0.04"/></g>
-        <path d="M82,195 L284,195 L284,208 L82,208 Z" fill="white" opacity="0.06"/>
-        <path d="M95,180 L268,180" stroke="white" stroke-width="2" stroke-opacity="0.18" stroke-linecap="round"/>
-        <g filter="url(#fHandle)"><line x1="356" y1="340" x2="426" y2="412" stroke="url(#gHandle)" stroke-width="34" stroke-linecap="round"/><line x1="349" y1="334" x2="419" y2="406" stroke="white" stroke-width="5" stroke-linecap="round" stroke-opacity="0.10"/></g>
-        <g filter="url(#fLens)"><circle cx="300" cy="280" r="78" fill="url(#gRing)"/><circle cx="300" cy="280" r="78" fill="none" stroke="white" stroke-width="3" stroke-opacity="0.10"/><circle cx="300" cy="280" r="79" fill="none" stroke="white" stroke-width="1.5" stroke-opacity="0.07"/><circle cx="300" cy="280" r="57" fill="url(#gLens)"/><circle cx="300" cy="280" r="57" fill="url(#gLensDepth)"/><ellipse cx="276" cy="255" rx="25" ry="15" fill="white" opacity="0.50" transform="rotate(-42 276 255)"/><ellipse cx="290" cy="244" rx="12" ry="7" fill="white" opacity="0.30" transform="rotate(-40 290 244)"/><circle cx="268" cy="250" r="4.5" fill="white" opacity="0.55"/><ellipse cx="322" cy="308" rx="16" ry="9" fill="#9eceff" opacity="0.28" transform="rotate(-42 322 308)"/><circle cx="300" cy="280" r="60" fill="none" stroke="#08101f" stroke-width="4" stroke-opacity="0.25"/></g>
-        <g transform="translate(102, 310)" filter="url(#fBadge)"><clipPath id="cpFinderInner"><rect x="0" y="0" width="80" height="80" rx="16"/></clipPath><rect x="0" y="0" width="80" height="80" rx="16" fill="#1e63ec"/><g clip-path="url(#cpFinderInner)"><rect x="0" y="0" width="40" height="80" fill="url(#gFinderLeft)"/><rect x="40" y="0" width="40" height="80" fill="url(#gFinderRight)"/><rect x="37" y="0" width="3" height="80" fill="#0d40bb" opacity="0.30"/><rect x="0" y="0" width="80" height="18" rx="0" fill="white" opacity="0.10"/><ellipse cx="22" cy="29" rx="11" ry="12" fill="white"/><circle cx="24" cy="31" r="6.5" fill="#1a1f2e"/><circle cx="26" cy="28.5" r="2.5" fill="white"/><circle cx="24" cy="31" r="6.5" fill="none" stroke="#2a3050" stroke-width="1" stroke-opacity="0.4"/><ellipse cx="58" cy="29" rx="11" ry="12" fill="white"/><circle cx="60" cy="31" r="6.5" fill="#1a1f2e"/><circle cx="62" cy="28.5" r="2.5" fill="white"/><circle cx="60" cy="31" r="6.5" fill="none" stroke="#2a3050" stroke-width="1" stroke-opacity="0.4"/><path d="M15,52 Q40,72 65,52" stroke="white" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M15,52 Q40,72 65,52" stroke="#0840bb" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.25" transform="translate(0,3)"/></g><rect x="0" y="0" width="80" height="80" rx="16" fill="none" stroke="white" stroke-width="1.5" stroke-opacity="0.25"/></g>
+        <path d="M370,195 L428,195 Q442,195 442,209 L442,260 L370,260 Z" fill="url(#gFolBk)" filter="url(#fFol)"/>
+        <g filter="url(#fFol)"><path d="M82,208 L82,190 Q82,177 95,177 L202,177 Q213,177 218,168 L228,152 Q233,142 244,142 L272,142 Q284,142 284,155 L284,177 L284,208 Z" fill="url(#gFolT)"/><path d="M82,208 L428,208 Q442,208 442,222 L442,402 Q442,416 428,416 L96,416 Q82,416 82,402 Z" fill="url(#gFolB)"/></g>
+        <g clip-path="url(#cpFol)"><rect x="82" y="208" width="360" height="40" fill="white" opacity="0.08"/></g>
+        <g filter="url(#fHnd)"><line x1="356" y1="340" x2="426" y2="412" stroke="url(#gHnd)" stroke-width="34" stroke-linecap="round"/></g>
+        <g filter="url(#fLens)"><circle cx="300" cy="280" r="78" fill="url(#gRing)"/><circle cx="300" cy="280" r="57" fill="url(#gLens)"/><circle cx="300" cy="280" r="57" fill="url(#gLensD)"/><ellipse cx="276" cy="255" rx="25" ry="15" fill="white" opacity="0.50" transform="rotate(-42 276 255)"/></g>
+        <g transform="translate(102,310)" filter="url(#fBdg)"><clipPath id="cpFI"><rect x="0" y="0" width="80" height="80" rx="16"/></clipPath><rect x="0" y="0" width="80" height="80" rx="16" fill="#1e63ec"/><g clip-path="url(#cpFI)"><rect x="0" y="0" width="40" height="80" fill="url(#gFL)"/><rect x="40" y="0" width="40" height="80" fill="url(#gFR)"/><ellipse cx="22" cy="29" rx="11" ry="12" fill="white"/><circle cx="24" cy="31" r="6.5" fill="#1a1f2e"/><circle cx="26" cy="28.5" r="2.5" fill="white"/><ellipse cx="58" cy="29" rx="11" ry="12" fill="white"/><circle cx="60" cy="31" r="6.5" fill="#1a1f2e"/><circle cx="62" cy="28.5" r="2.5" fill="white"/><path d="M15,52 Q40,72 65,52" stroke="white" stroke-width="4.5" fill="none" stroke-linecap="round"/></g></g>
       </svg>
     </div>
 
     <h1>BetterMSFile</h1>
     <p class="tagline">Your Microsoft 365 files. One native app. Always online.</p>
 
-    <a href="https://github.com/YannickAaron/BetterMSFile/releases/latest" class="download-btn">
-      <!-- Apple logo -->
-      <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-27.1-46.9-42.8-83.7-47.4-35.4-4.5-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184 4 273.5c0 26.2 4.8 53.3 14.4 81.2 12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-62.1 24-72.5-24 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
-      Download for macOS
-    </a>
-    <p class="hero-req">Requires macOS 26.2+ &middot; Microsoft 365 work or school account</p>
+    <div class="hero-cta">
+      <a href="https://github.com/YannickAaron/BetterMSFile/releases/download/v1.8/BetterMSFile-v1.8.dmg" class="download-btn" id="dlbtn-hero" download>
+        <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-27.1-46.9-42.8-83.7-47.4-35.4-4.5-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184 4 273.5c0 26.2 4.8 53.3 14.4 81.2 12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-62.1 24-72.5-24 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+        Download for macOS
+      </a>
+      <p class="hero-req">Free &amp; Open Source &middot; macOS 26.2+ &middot; Microsoft 365 work or school account</p>
+    </div>
+
+    <!-- Floating hero app preview -->
+    <div class="hero-mockup-wrap">
+      <div class="hero-app-window">
+        <div class="aw-bar">
+          <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+          <span class="aw-bar-center" style="color:#bbb;font-size:12px;">BetterMSFile</span>
+          <span class="aw-bar-spacer"></span>
+        </div>
+        <div style="display:flex;min-height:220px;">
+          <div class="aw-sidebar" style="width:160px;">
+            <div class="aw-sec-hdr">Favorites</div>
+            <div class="aw-si"><span>⭐</span> Marketing</div>
+            <div class="aw-sec-hdr">OneDrive</div>
+            <div class="aw-si active"><span>☁️</span> My Files</div>
+            <div class="aw-sec-hdr">SharePoint</div>
+            <div class="aw-si sub">📂 Marketing</div>
+            <div class="aw-si sub">📂 Engineering</div>
+            <div class="aw-si sub">📂 HR</div>
+            <div class="aw-sec-hdr">Teams</div>
+            <div class="aw-si"><span>💬</span> General</div>
+          </div>
+          <div class="aw-main">
+            <div class="aw-toolbar">
+              <div class="aw-tb-btn">← </div>
+              <div class="aw-tb-btn">→ </div>
+              <div style="font-size:12px;color:#6b7280;margin-left:4px;flex:1;">My Files</div>
+              <div class="aw-tb-search">🔍 <span>Search</span></div>
+            </div>
+            <div class="aw-file-hdr"><span>Name</span><span>Modified</span><span>Size</span></div>
+            <div class="aw-fr sel"><span class="aw-fname"><span class="fi fi-xl">XLS</span> Q4 Report.xlsx</span><span class="aw-fmeta">2h ago</span><span class="aw-fmeta">124 KB</span></div>
+            <div class="aw-fr"><span class="aw-fname"><span class="fi fi-pp">PPT</span> Product Roadmap.pptx</span><span class="aw-fmeta">1d ago</span><span class="aw-fmeta">2.3 MB</span></div>
+            <div class="aw-fr"><span class="aw-fname"><span class="fi fi-pd">PDF</span> Design System.pdf</span><span class="aw-fmeta">3d ago</span><span class="aw-fmeta">890 KB</span></div>
+            <div class="aw-fr"><span class="aw-fname"><span class="fi fi-wd">DOC</span> Meeting Notes.docx</span><span class="aw-fmeta">1w ago</span><span class="aw-fmeta">48 KB</span></div>
+            <div class="aw-fr"><span class="aw-fname"><span class="fi fi-fo">📁</span> Archive</span><span class="aw-fmeta">2w ago</span><span class="aw-fmeta">4 items</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
 <!-- ════════════ PROBLEM ════════════ -->
 <section class="problem">
-  <h2>OneDrive & SharePoint are a mess.</h2>
-  <p>
+  <h2 class="animate-in">OneDrive &amp; SharePoint are a mess.</h2>
+  <p class="animate-in d1">
     Files scattered across OneDrive, SharePoint sites, and Teams channels.
     Sync conflicts when you forget to close a file. Searching through endless team subfolders
     just to find that one document. BetterMSFile brings it all together.
   </p>
 </section>
 
+<!-- ════════════ HOW IT WORKS ════════════ -->
+<section class="how">
+  <div class="section-header animate-in">
+    <div class="section-label">How it works</div>
+    <h2>Up and running in minutes</h2>
+    <p>Three steps and your entire Microsoft 365 file world is in one window.</p>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="step">
+    <div class="step-text animate-in">
+      <div class="step-num">1</div>
+      <h3>Sign in with your Microsoft 365 account</h3>
+      <p>One click with your existing work or school Microsoft account. No extra passwords, no configuration — MSAL handles authentication securely.</p>
+    </div>
+    <div class="step-mockup animate-in d2">
+      <div class="aw">
+        <div class="aw-bar">
+          <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+          <span class="aw-bar-center" style="color:#999;font-size:12px;">BetterMSFile</span>
+          <span class="aw-bar-spacer"></span>
+        </div>
+        <div class="aw-signin">
+          <div style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#1a57e3,#3d7ff5);display:flex;align-items:center;justify-content:center;">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+          </div>
+          <div class="aw-signin-title">Welcome to BetterMSFile</div>
+          <div class="aw-signin-sub">Sign in to access your OneDrive,<br>SharePoint and Teams files</div>
+          <button class="aw-ms-btn">
+            <svg class="ms-logo" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+            Sign in with Microsoft
+          </button>
+          <div style="font-size:11px;color:#9ca3af;">Work or school accounts only</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="step" style="direction:initial;">
+    <div class="step-mockup animate-in">
+      <div class="aw">
+        <div class="aw-bar">
+          <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+          <span class="aw-bar-center" style="color:#999;font-size:12px;">Marketing Team — SharePoint</span>
+          <span class="aw-bar-spacer"></span>
+        </div>
+        <div style="display:flex;min-height:200px;">
+          <div class="aw-sidebar" style="width:155px;">
+            <div class="aw-sec-hdr">OneDrive</div>
+            <div class="aw-si"><span>☁️</span> My Files</div>
+            <div class="aw-sec-hdr">SharePoint</div>
+            <div class="aw-si active sub">📂 Marketing</div>
+            <div class="aw-si sub">📂 Engineering</div>
+            <div class="aw-si sub">📂 HR Team</div>
+            <div class="aw-si sub">📂 Finance</div>
+            <div class="aw-sec-hdr">Teams</div>
+            <div class="aw-si"><span>💬</span> General</div>
+            <div class="aw-si"><span>💬</span> Dev Team</div>
+          </div>
+          <div class="aw-main">
+            <div class="aw-file-hdr"><span>Name</span><span>Modified</span><span>Size</span></div>
+            <div class="aw-fr"><span class="aw-fname"><span class="fi fi-fo">📁</span> Campaigns</span><span class="aw-fmeta">Today</span><span class="aw-fmeta">12 items</span></div>
+            <div class="aw-fr"><span class="aw-fname"><span class="fi fi-xl">XLS</span> Budget 2025.xlsx</span><span class="aw-fmeta">2d ago</span><span class="aw-fmeta">380 KB</span></div>
+            <div class="aw-fr"><span class="aw-fname"><span class="fi fi-pp">PPT</span> Brand Guide.pptx</span><span class="aw-fmeta">1w ago</span><span class="aw-fmeta">14 MB</span></div>
+            <div class="aw-fr"><span class="aw-fname"><span class="fi fi-pd">PDF</span> Strategy 2025.pdf</span><span class="aw-fmeta">2w ago</span><span class="aw-fmeta">2.1 MB</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="step-text animate-in d2" style="order:2;">
+      <div class="step-num">2</div>
+      <h3>Browse all your files in one place</h3>
+      <p>OneDrive, every SharePoint site you have access to, and all Teams channels — all in one sidebar. Navigate like it's a native Finder window.</p>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="step">
+    <div class="step-text animate-in">
+      <div class="step-num">3</div>
+      <h3>Search, open, and manage instantly</h3>
+      <p>Press <kbd style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;padding:2px 7px;font-size:13px;">⌘K</kbd> to search across everything. Open files directly in Office apps. Create folders, rename, delete — all without a browser.</p>
+    </div>
+    <div class="step-mockup animate-in d2">
+      <div class="aw">
+        <div class="aw-bar">
+          <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+          <span class="aw-bar-center" style="color:#999;font-size:12px;">Search</span>
+          <span class="aw-bar-spacer"></span>
+        </div>
+        <div class="aw-searchbar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#9ca3af"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+          budget 2025<span class="aw-cursor"></span>
+        </div>
+        <div class="aw-scopes">
+          <span class="aw-pill on">All</span>
+          <span class="aw-pill">OneDrive</span>
+          <span class="aw-pill">SharePoint</span>
+          <span class="aw-pill">Teams</span>
+        </div>
+        <div class="aw-sr">
+          <span class="fi fi-xl" style="width:26px;height:26px;font-size:8px;">XLS</span>
+          <div class="aw-sr-info"><div class="aw-sr-name">Budget 2025.xlsx</div><div class="aw-sr-path">Marketing › Finance</div></div>
+          <span class="aw-sr-date">2d ago</span>
+        </div>
+        <div class="aw-sr">
+          <span class="fi fi-xl" style="width:26px;height:26px;font-size:8px;">XLS</span>
+          <div class="aw-sr-info"><div class="aw-sr-name">Budget 2025 Final.xlsx</div><div class="aw-sr-path">Engineering › Docs</div></div>
+          <span class="aw-sr-date">1w ago</span>
+        </div>
+        <div class="aw-sr">
+          <span class="fi fi-pd" style="width:26px;height:26px;font-size:8px;">PDF</span>
+          <div class="aw-sr-info"><div class="aw-sr-name">Q1 2025 Budget.pdf</div><div class="aw-sr-path">Teams › General</div></div>
+          <span class="aw-sr-date">1mo ago</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ════════════ FEATURES ════════════ -->
 <section class="features">
-  <h2>Built for how you actually work</h2>
-  <p class="subtitle">Every feature designed to save you time navigating Microsoft 365.</p>
+  <h2 class="animate-in">Built for how you actually work</h2>
+  <p class="subtitle animate-in d1">Every feature designed to save you time navigating Microsoft 365.</p>
 
   <div class="bento-grid">
-    <!-- Row 1: wide + 2 normal -->
-    <div class="bento-item bento-wide bento-blue">
+    <div class="bento-item bento-wide bento-blue animate-in d1">
       <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM10 17l-3.5-3.5 1.41-1.41L10 14.17l4.59-4.58L16 11l-6 6z"/></svg></div>
       <h3>Always Online</h3>
       <p>Files stream directly from the cloud. No syncing, no conflicts, no waiting for downloads. Your data is always live and up to date.</p>
     </div>
-
-    <div class="bento-item bento-indigo">
+    <div class="bento-item bento-indigo animate-in d2">
       <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M4 6h16c1.1 0 2-.9 2-2s-.9-2-2-2H4c-1.1 0-2 .9-2 2s.9 2 2 2zm16 2H4c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2v-8c0-1.1-.9-2-2-2zM4 18v-8h6v8H4z"/></svg></div>
       <h3>Native Finder Feeling</h3>
-      <p>SwiftUI from the ground up. Sidebar, file list, detail panel &mdash; feels like a system app.</p>
+      <p>SwiftUI from the ground up. Sidebar, file list, detail panel — feels like a system app.</p>
     </div>
-
-    <div class="bento-item bento-emerald">
+    <div class="bento-item bento-emerald animate-in d3">
       <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg></div>
       <h3>Open &amp; Edit Directly</h3>
       <p>Click any file to launch Word, Excel, or PowerPoint directly. No local copies needed.</p>
     </div>
-
-    <!-- Row 2: normal + wide + normal -->
-    <div class="bento-item bento-amber">
+    <div class="bento-item bento-amber animate-in d1">
       <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg></div>
       <h3>Favorites &amp; Suggestions</h3>
       <p>Pin frequently used files. Smart suggestions surface what you reach for most.</p>
     </div>
-
-    <div class="bento-item bento-wide bento-violet">
+    <div class="bento-item bento-wide bento-violet animate-in d2">
       <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></div>
       <h3>Scoped Search</h3>
       <p>Search globally or narrow results to a specific team, site, or your OneDrive. Find the right file without wading through hundreds of results.</p>
     </div>
-
-    <div class="bento-item bento-teal">
+    <div class="bento-item bento-teal animate-in d3">
       <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-1 8h-3v3h-2v-3h-3v-2h3V9h2v3h3v2z"/></svg></div>
       <h3>Create &amp; Manage Folders</h3>
       <p>Build folder structures in-app. Right-click or press <span class="bento-accent">&#8984;&#8679;N</span> to create. Delete what you no longer need.</p>
     </div>
-
-    <!-- Row 3: 2 normal + wide -->
-    <div class="bento-item bento-slate">
+    <div class="bento-item bento-slate animate-in d1">
       <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z"/></svg></div>
       <h3>Keyboard-First</h3>
       <p>Every action has a shortcut. Navigate, search, and manage without touching the mouse.</p>
     </div>
-
-    <div class="bento-item bento-wide bento-rose">
+    <div class="bento-item bento-wide bento-rose animate-in d2">
       <div class="bento-icon"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M11 18c0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2 2 .9 2 2zm-2-8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm6 4c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg></div>
       <h3>Drag &amp; Drop Reorder</h3>
       <p>Arrange files your way. Drag to reorder, drag into folders to move. Custom sort order persists per folder across sessions.</p>
@@ -576,43 +663,204 @@
   </div>
 </section>
 
-<!-- ════════════ SCREENSHOTS ════════════ -->
+<!-- ════════════ SEE IT IN ACTION ════════════ -->
 <section class="screenshots">
-  <h2>See it in action</h2>
-  <p class="subtitle">Browse SharePoint sites and search across all your files &mdash; from one window.</p>
+  <h2 class="animate-in">See it in action</h2>
+  <p class="subtitle animate-in d1">Four views. One window. Everything you need to manage Microsoft 365 files natively.</p>
 
-  <div class="screenshots-grid">
-    <div class="screenshot-item">
-      <div class="screenshot-frame">
-        <div class="screenshot-titlebar">
-          <span class="screenshot-dot red"></span>
-          <span class="screenshot-dot yellow"></span>
-          <span class="screenshot-dot green"></span>
+  <div class="mockups-grid">
+
+    <!-- Mockup A: File Browser -->
+    <div class="mockup-item animate-in d1">
+      <div class="aw">
+        <div class="aw-bar">
+          <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+          <span class="aw-bar-center" style="font-size:12px;">OneDrive — My Files</span>
+          <span class="aw-bar-spacer"></span>
         </div>
-        <img src="images/screenshot-browse.png" alt="BetterMSFile browsing SharePoint folders with native Finder-like sidebar" loading="lazy">
+        <div style="display:flex;min-height:260px;">
+          <div class="aw-sidebar">
+            <div class="aw-sec-hdr">Favorites</div>
+            <div class="aw-si" style="font-size:12px;"><span>⭐</span> Marketing</div>
+            <div class="aw-si" style="font-size:12px;"><span>⭐</span> Q4 Report</div>
+            <div class="aw-sec-hdr">OneDrive</div>
+            <div class="aw-si active" style="font-size:12px;"><span>☁️</span> My Files</div>
+            <div class="aw-sec-hdr">SharePoint</div>
+            <div class="aw-si sub">📂 Marketing</div>
+            <div class="aw-si sub">📂 Engineering</div>
+            <div class="aw-si sub">📂 HR</div>
+            <div class="aw-sec-hdr">Teams</div>
+            <div class="aw-si" style="font-size:12px;"><span>💬</span> Dev Team</div>
+          </div>
+          <div class="aw-main">
+            <div class="aw-toolbar">
+              <div class="aw-tb-btn">☰</div>
+              <div class="aw-tb-btn">⊞</div>
+              <div style="flex:1;"></div>
+              <div class="aw-tb-search">🔍 <span>Search files</span></div>
+            </div>
+            <div class="aw-file-hdr"><span>Name</span><span>Modified</span><span>Size</span></div>
+            <div class="aw-fr sel"><span class="aw-fname"><span class="fi fi-xl">XLS</span> Q4 Report.xlsx</span><span class="aw-fmeta">2h ago</span><span class="aw-fmeta">124 KB</span></div>
+            <div class="aw-fr"><span class="aw-fname"><span class="fi fi-pp">PPT</span> Product Roadmap.pptx</span><span class="aw-fmeta">1d ago</span><span class="aw-fmeta">2.3 MB</span></div>
+            <div class="aw-fr"><span class="aw-fname"><span class="fi fi-pd">PDF</span> Design System.pdf</span><span class="aw-fmeta">3d ago</span><span class="aw-fmeta">890 KB</span></div>
+            <div class="aw-fr"><span class="aw-fname"><span class="fi fi-wd">DOC</span> Meeting Notes.docx</span><span class="aw-fmeta">1w ago</span><span class="aw-fmeta">48 KB</span></div>
+            <div class="aw-fr"><span class="aw-fname"><span class="fi fi-fo">📁</span> Archive</span><span class="aw-fmeta">2w ago</span><span class="aw-fmeta">4 items</span></div>
+          </div>
+        </div>
       </div>
-      <p class="screenshot-label">Browse SharePoint sites like a Finder window</p>
+      <p class="mockup-label">Browse SharePoint sites like a Finder window</p>
     </div>
 
-    <div class="screenshot-item">
-      <div class="screenshot-frame">
-        <div class="screenshot-titlebar">
-          <span class="screenshot-dot red"></span>
-          <span class="screenshot-dot yellow"></span>
-          <span class="screenshot-dot green"></span>
+    <!-- Mockup B: Search -->
+    <div class="mockup-item animate-in d2">
+      <div class="aw">
+        <div class="aw-bar">
+          <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+          <span class="aw-bar-center" style="font-size:12px;">Global Search</span>
+          <span class="aw-bar-spacer"></span>
         </div>
-        <img src="images/screenshot-search.png" alt="BetterMSFile global search across all Microsoft 365 files" loading="lazy">
+        <div style="min-height:260px;">
+          <div class="aw-searchbar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#9ca3af"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <span>q4 report</span><span class="aw-cursor"></span>
+          </div>
+          <div class="aw-scopes">
+            <span class="aw-pill on">All</span>
+            <span class="aw-pill">OneDrive</span>
+            <span class="aw-pill">SharePoint</span>
+            <span class="aw-pill">Teams</span>
+          </div>
+          <div style="padding:4px 12px 6px;font-size:11px;color:#9ca3af;font-weight:500;">3 results</div>
+          <div class="aw-sr">
+            <span class="fi fi-xl">XLS</span>
+            <div class="aw-sr-info"><div class="aw-sr-name">Q4 Report.xlsx</div><div class="aw-sr-path">OneDrive › My Files</div></div>
+            <span class="aw-sr-date">2h ago</span>
+          </div>
+          <div class="aw-sr">
+            <span class="fi fi-pp">PPT</span>
+            <div class="aw-sr-info"><div class="aw-sr-name">Q4 Presentation.pptx</div><div class="aw-sr-path">Marketing › Decks</div></div>
+            <span class="aw-sr-date">1d ago</span>
+          </div>
+          <div class="aw-sr">
+            <span class="fi fi-xl">XLS</span>
+            <div class="aw-sr-info"><div class="aw-sr-name">Q4 Budget Final.xlsx</div><div class="aw-sr-path">Finance › 2025</div></div>
+            <span class="aw-sr-date">3d ago</span>
+          </div>
+        </div>
       </div>
-      <p class="screenshot-label">Search across all files instantly</p>
+      <p class="mockup-label">Search across all files instantly</p>
     </div>
+
+    <!-- Mockup C: Grid view + Inspector -->
+    <div class="mockup-item animate-in d3">
+      <div class="aw">
+        <div class="aw-bar">
+          <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+          <span class="aw-bar-center" style="font-size:12px;">Engineering — Documents</span>
+          <span class="aw-bar-spacer"></span>
+        </div>
+        <div style="display:flex;min-height:260px;">
+          <div class="aw-sidebar" style="width:140px;">
+            <div class="aw-sec-hdr">SharePoint</div>
+            <div class="aw-si sub">📂 Marketing</div>
+            <div class="aw-si sub active">📂 Engineering</div>
+            <div class="aw-si sub">📂 HR</div>
+            <div class="aw-sec-hdr">Teams</div>
+            <div class="aw-si" style="font-size:12px;"><span>💬</span> General</div>
+          </div>
+          <div class="aw-main">
+            <div class="aw-toolbar">
+              <div class="aw-tb-btn">☰</div>
+              <div class="aw-tb-btn" style="background:#dbeafe;color:#1d4ed8;border-color:#93c5fd;">⊞</div>
+              <div style="flex:1;"></div>
+            </div>
+            <div class="aw-grid" style="flex:1;">
+              <div class="aw-gc sel"><span class="fi fi-xl">XLS</span><span class="aw-gc-lbl">Sprint<br>Metrics.xlsx</span></div>
+              <div class="aw-gc"><span class="fi fi-wd">DOC</span><span class="aw-gc-lbl">RFC-2025<br>.docx</span></div>
+              <div class="aw-gc"><span class="fi fi-pd">PDF</span><span class="aw-gc-lbl">Architecture<br>.pdf</span></div>
+              <div class="aw-gc"><span class="fi fi-pp">PPT</span><span class="aw-gc-lbl">Roadmap<br>Q3.pptx</span></div>
+              <div class="aw-gc"><span class="fi fi-fo">📁</span><span class="aw-gc-lbl">Archive</span></div>
+              <div class="aw-gc"><span class="fi fi-xl">XLS</span><span class="aw-gc-lbl">OKRs<br>2025.xlsx</span></div>
+            </div>
+          </div>
+          <div class="aw-inspector">
+            <div class="aw-insp-icon fi fi-xl" style="width:44px;height:44px;font-size:12px;font-weight:800;border-radius:8px;">XLS</div>
+            <div class="aw-insp-title">Sprint Metrics.xlsx</div>
+            <div class="aw-insp-divider"></div>
+            <div class="aw-insp-row"><span class="aw-insp-lbl">Size</span><span class="aw-insp-val">284 KB</span></div>
+            <div class="aw-insp-row"><span class="aw-insp-lbl">Modified</span><span class="aw-insp-val">Today 9:41</span></div>
+            <div class="aw-insp-row"><span class="aw-insp-lbl">Location</span><span class="aw-insp-val">Engineering</span></div>
+            <div class="aw-insp-divider"></div>
+            <div class="aw-insp-btn">Open in Excel</div>
+          </div>
+        </div>
+      </div>
+      <p class="mockup-label">Grid view with file inspector panel</p>
+    </div>
+
+    <!-- Mockup D: Multi-tab -->
+    <div class="mockup-item animate-in d4">
+      <div class="aw">
+        <div class="aw-bar">
+          <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+          <span class="aw-bar-center" style="font-size:12px;">BetterMSFile</span>
+          <span class="aw-bar-spacer"></span>
+        </div>
+        <div class="aw-tabs">
+          <div class="aw-tab">☁️ OneDrive<span class="aw-tab-x">✕</span></div>
+          <div class="aw-tab on">📂 Marketing<span class="aw-tab-x">✕</span></div>
+          <div class="aw-tab">📂 Engineering<span class="aw-tab-x">✕</span></div>
+          <div class="aw-tab-add">+</div>
+        </div>
+        <div style="display:flex;min-height:220px;">
+          <div class="aw-sidebar" style="width:155px;">
+            <div class="aw-sec-hdr">SharePoint</div>
+            <div class="aw-si sub active">📂 Marketing</div>
+            <div class="aw-si sub">📂 Campaigns</div>
+            <div class="aw-si sub">📂 Assets</div>
+            <div class="aw-si sub">📂 Reports</div>
+          </div>
+          <div class="aw-main">
+            <div class="aw-file-hdr"><span>Name</span><span>Modified</span><span>Size</span></div>
+            <div class="aw-fr"><span class="aw-fname"><span class="fi fi-fo">📁</span> Q4 Campaign</span><span class="aw-fmeta">Today</span><span class="aw-fmeta">8 items</span></div>
+            <div class="aw-fr"><span class="aw-fname"><span class="fi fi-xl">XLS</span> Budget 2025.xlsx</span><span class="aw-fmeta">2d ago</span><span class="aw-fmeta">380 KB</span></div>
+            <div class="aw-fr"><span class="aw-fname"><span class="fi fi-pp">PPT</span> Brand Guide.pptx</span><span class="aw-fmeta">1w ago</span><span class="aw-fmeta">14 MB</span></div>
+            <div class="aw-fr"><span class="aw-fname"><span class="fi fi-pd">PDF</span> Strategy.pdf</span><span class="aw-fmeta">2w ago</span><span class="aw-fmeta">2.1 MB</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="mockup-label">Multi-tab browsing — compare folders side by side</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ════════════ OPEN SOURCE ════════════ -->
+<section class="opensource">
+  <div class="opensource-inner">
+    <div class="os-badge animate-in">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="#16a34a"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844a9.59 9.59 0 012.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+      MIT License — Free Forever
+    </div>
+    <h2 class="animate-in d1">Proudly Open Source</h2>
+    <p class="animate-in d2">BetterMSFile is free and open source. No subscriptions, no telemetry, no hidden costs. The entire source code is on GitHub — audit it, fork it, contribute to it.</p>
+    <div class="os-pillars animate-in d3">
+      <div class="os-pillar"><span class="os-dot"></span> MIT License</div>
+      <div class="os-pillar"><span class="os-dot"></span> Community contributions welcome</div>
+      <div class="os-pillar"><span class="os-dot"></span> No telemetry or tracking</div>
+    </div>
+    <a href="https://github.com/YannickAaron/BetterMSFile" class="github-btn animate-in d4" target="_blank">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844a9.59 9.59 0 012.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+      View on GitHub
+    </a>
   </div>
 </section>
 
 <!-- ════════════ SHORTCUTS ════════════ -->
 <section class="shortcuts">
-  <h2>Keyboard Shortcuts</h2>
-  <p class="subtitle">Every action at your fingertips. Navigate your files without touching the mouse.</p>
-  <div class="shortcuts-grid">
+  <h2 class="animate-in">Keyboard Shortcuts</h2>
+  <p class="subtitle animate-in d1">Every action at your fingertips. Navigate your files without touching the mouse.</p>
+  <div class="shortcuts-grid animate-in d2">
     <div class="shortcut-row"><kbd>&#8984;K</kbd><span>Global search</span></div>
     <div class="shortcut-row"><kbd>&#8984;&#8679;N</kbd><span>New folder</span></div>
     <div class="shortcut-row"><kbd>&#8984;D</kbd><span>Toggle favorite</span></div>
@@ -629,19 +877,44 @@
 <!-- ════════════ CTA ════════════ -->
 <section class="cta">
   <div class="cta-content">
-    <h2>Stop searching. Start finding.</h2>
-    <p>Free and open source. Download now and take control of your Microsoft 365 files.</p>
-
-    <a href="https://github.com/YannickAaron/BetterMSFile/releases/latest" class="download-btn">
-      <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-27.1-46.9-42.8-83.7-47.4-35.4-4.5-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184 4 273.5c0 26.2 4.8 53.3 14.4 81.2 12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-62.1 24-72.5-24 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
-      Download for macOS
-    </a>
+    <h2 class="animate-in">Stop searching. Start finding.</h2>
+    <p class="animate-in d1">Free and open source. Download now and take control of your Microsoft 365 files.</p>
+    <div class="animate-in d2">
+      <a href="https://github.com/YannickAaron/BetterMSFile/releases/download/v1.8/BetterMSFile-v1.8.dmg" class="download-btn" id="dlbtn-cta" download>
+        <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-27.1-46.9-42.8-83.7-47.4-35.4-4.5-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184 4 273.5c0 26.2 4.8 53.3 14.4 81.2 12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-62.1 24-72.5-24 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+        Download for macOS
+      </a>
+    </div>
   </div>
 </section>
 
 <footer>
-  <p>BetterMSFile &middot; <a href="https://github.com/YannickAaron/BetterMSFile">View on GitHub</a></p>
+  <span>BetterMSFile &middot; Free &amp; Open Source</span>
+  <a href="https://github.com/YannickAaron/BetterMSFile" target="_blank">View on GitHub</a>
+  <a href="https://github.com/YannickAaron/BetterMSFile/releases" target="_blank">Release Notes</a>
+  <a href="https://github.com/YannickAaron/BetterMSFile/issues" target="_blank">Report a Bug</a>
 </footer>
 
+<script>
+// Scroll animations
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+}, { threshold: 0.08 });
+document.querySelectorAll('.animate-in').forEach(el => io.observe(el));
+
+// Dynamic download button — always fetches the latest DMG
+fetch('https://api.github.com/repos/YannickAaron/BetterMSFile/releases/latest')
+  .then(r => r.json())
+  .then(data => {
+    const dmg = data.assets && data.assets.find(a => a.name.endsWith('.dmg'));
+    if (dmg) {
+      document.querySelectorAll('.download-btn').forEach(btn => {
+        btn.href = dmg.browser_download_url;
+        btn.setAttribute('download', dmg.name);
+      });
+    }
+  })
+  .catch(() => { /* silently fall back to hardcoded v1.8 URL */ });
+</script>
 </body>
 </html>

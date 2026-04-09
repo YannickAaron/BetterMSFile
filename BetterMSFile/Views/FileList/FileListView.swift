@@ -312,7 +312,17 @@ struct FileListView: View {
                 onNewFolder: {
                     newFolderName = ""
                     showNewFolderAlert = true
-                }
+                },
+                onMoveToFolder: { draggedId, folder in
+                    await moveFile(draggedId: draggedId, intoFolder: folder)
+                },
+                onReorder: { draggedId, targetId in
+                    viewModel.reorderFile(draggedId: draggedId, targetId: targetId)
+                },
+                renamingFileId: renamingFileId,
+                renamingText: $renamingText,
+                onRenameCommit: { commitRename() },
+                onRenameCancel: { cancelRename() }
             )
 
             if viewModel.isLoading || viewModel.isRefreshing {

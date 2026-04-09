@@ -2,6 +2,24 @@ import SwiftUI
 
 struct FileGridCellView: View {
     let file: UnifiedFile
+    var isRenaming: Bool = false
+    @Binding var renamingText: String
+    var onRenameCommit: (() -> Void)?
+    var onRenameCancel: (() -> Void)?
+
+    init(
+        file: UnifiedFile,
+        isRenaming: Bool = false,
+        renamingText: Binding<String> = .constant(""),
+        onRenameCommit: (() -> Void)? = nil,
+        onRenameCancel: (() -> Void)? = nil
+    ) {
+        self.file = file
+        self.isRenaming = isRenaming
+        self._renamingText = renamingText
+        self.onRenameCommit = onRenameCommit
+        self.onRenameCancel = onRenameCancel
+    }
 
     var body: some View {
         VStack(spacing: 6) {
@@ -13,11 +31,29 @@ struct FileGridCellView: View {
                         .stroke(Color.primary.opacity(0.1), lineWidth: 0.5)
                 )
 
-            Text(file.name)
-                .font(.caption)
-                .lineLimit(2)
-                .multilineTextAlignment(.center)
-                .frame(width: 120)
+            if isRenaming {
+                TextField("Name", text: $renamingText)
+                    .textFieldStyle(.plain)
+                    .font(.caption)
+                    .multilineTextAlignment(.center)
+                    .frame(width: 120)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .onSubmit {
+                        onRenameCommit?()
+                    }
+                    .onExitCommand {
+                        onRenameCancel?()
+                    }
+            } else {
+                Text(file.name)
+                    .font(.caption)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .frame(width: 120)
+            }
 
             sourceBadge
         }
