@@ -59,7 +59,7 @@ To build from source:
 
 ### Linux (beta)
 
-**Prebuilt (recommended).** Download `BetterMSFile-vX-linux-x86_64.tar.gz` (or `-aarch64`) from the [latest release](https://github.com/YannickAaron/BetterMSFile/releases/latest). It includes the Swift runtime, so you don't need Swift.
+**Prebuilt (recommended).** Download `BetterMSFile-vX-linux-x86_64.tar.gz` (or `-aarch64`) from [GitHub Releases](https://github.com/YannickAaron/BetterMSFile/releases) (Linux builds may be marked pre-release while in beta). It includes the Swift runtime, so you don't need Swift.
 
 ```bash
 sudo apt install libadwaita-1-0 libsecret-tools poppler-utils    # Ubuntu 26.04 / Debian

@@ -3,6 +3,9 @@ name: Release
 # Bump MARKETING_VERSION, commit, then:  git tag v1.9 && git push origin v1.9
 # Builds the signed + notarized macOS DMG and Linux tarballs (x86_64, aarch64) and publishes the GitHub release.
 # Re-run for an existing tag via "Run workflow" (assets are replaced).
+# Without the macOS signing secrets the DMG is skipped and the release is published as a pre-release (Linux only),
+# so `releases/latest` (Mac update check, website download button) keeps pointing at the last release with a DMG.
+# Re-running once the secrets exist adds the DMG and promotes the release to latest.
 #
 # Required repository secrets (Settings → Secrets and variables → Actions):
 #   CONFIG_SWIFT                 full contents of BetterMSFile/Config.swift
@@ -69,24 +72,34 @@ jobs:
   macos:
     name: macOS
     runs-on: macos-26
+    env:
+      HAS_SIGNING: ${{ secrets.MACOS_CERTIFICATE_P12 != '' && secrets.ASC_API_KEY_P8 != '' }}
     steps:
+      - name: Signing secrets missing, skipping DMG
+        if: env.HAS_SIGNING != 'true'
+        run: echo "::notice::macOS signing secrets not set; publishing without a DMG (pre-release)."
       - uses: actions/checkout@v4
+        if: env.HAS_SIGNING == 'true'
         with:
           ref: ${{ env.TAG }}
       - name: Show Xcode
+        if: env.HAS_SIGNING == 'true'
         run: xcodebuild -version # runner default (needs >= 26.2 for the macOS 26.2 deployment target)
       - name: Write Config.swift
+        if: env.HAS_SIGNING == 'true'
         env:
           CONFIG_SWIFT: ${{ secrets.CONFIG_SWIFT }}
         run: |
           [ -n "$CONFIG_SWIFT" ] || { echo "::error::Secret CONFIG_SWIFT is not set"; exit 1; }
           printf '%s\n' "$CONFIG_SWIFT" > BetterMSFile/Config.swift
       - name: Check tag matches MARKETING_VERSION
+        if: env.HAS_SIGNING == 'true'
         run: |
           VERSION=$(xcodebuild -project BetterMSFile.xcodeproj -scheme BetterMSFile -showBuildSettings 2>/dev/null \
             | awk '/ MARKETING_VERSION =/ && !v {v=$3} END {print v}')
           [ "v$VERSION" = "$TAG" ] || { echo "::error::Tag $TAG does not match MARKETING_VERSION $VERSION"; exit 1; }
       - name: Import Developer ID certificate
+        if: env.HAS_SIGNING == 'true'
         env:
           MACOS_CERTIFICATE_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
           MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
@@ -105,6 +118,7 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
           security find-identity -v -p codesigning "$KEYCHAIN"
       - name: Write App Store Connect API key
+        if: env.HAS_SIGNING == 'true'
         env:
           ASC_API_KEY_P8: ${{ secrets.ASC_API_KEY_P8 }}
         run: |
@@ -112,17 +126,19 @@ jobs:
           printf '%s' "$ASC_API_KEY_P8" | base64 --decode > "$RUNNER_TEMP/AuthKey.p8"
           echo "ASC_KEY_PATH=$RUNNER_TEMP/AuthKey.p8" >> "$GITHUB_ENV"
       - name: Build, sign, notarize DMG
+        if: env.HAS_SIGNING == 'true'
         env:
           ASC_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
         run: ./scripts/release.sh --dmg-only
       - uses: actions/upload-artifact@v4
+        if: env.HAS_SIGNING == 'true'
         with:
           name: macos
           path: build/BetterMSFile-*.dmg
           if-no-files-found: error
       - name: Clean up signing material
-        if: always()
+        if: always() && env.HAS_SIGNING == 'true'
         run: |
           security delete-keychain "$RUNNER_TEMP/signing.keychain-db" 2>/dev/null || true
           rm -f "$RUNNER_TEMP/AuthKey.p8"
@@ -143,8 +159,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
+          # No DMG yet (macOS signing skipped) -> pre-release, so the Mac update check and website keep the last DMG.
+          if ls dist/*.dmg >/dev/null 2>&1; then STATUS=(--prerelease=false --latest); else STATUS=(--prerelease); fi
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
+            gh release edit "$TAG" "${STATUS[@]}"
           else
-            gh release create "$TAG" dist/* --title "BetterMSFile $TAG" --generate-notes --verify-tag
+            gh release create "$TAG" dist/* --title "BetterMSFile $TAG" --generate-notes --verify-tag "${STATUS[@]}"
           fi
