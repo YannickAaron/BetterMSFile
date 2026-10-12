@@ -561,14 +561,3 @@ final class FileListViewModel {
         errorMessage = nil
     }
 }
-
-enum MoveError: LocalizedError {
-    case crossDriveNotSupported
-
-    var errorDescription: String? {
-        switch self {
-        case .crossDriveNotSupported:
-            "Cannot move files between different drives (e.g., OneDrive to SharePoint). Use copy instead."
-        }
-    }
-}

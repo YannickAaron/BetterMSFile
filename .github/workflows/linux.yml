@@ -1,0 +1,33 @@
+name: Linux build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    # Ubuntu 26.04: adwaita-swift needs GTK >= 4.20 / libadwaita >= 1.8.
+    container: swift:6.4-resolute
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GTK / libadwaita
+        run: apt-get update && apt-get install -y --no-install-recommends libadwaita-1-dev libgtk-4-dev libsqlite3-dev pkg-config
+      # Config.swift is gitignored; a placeholder is enough to compile.
+      - name: Stub Config.swift
+        run: |
+          cat > BetterMSFile/Config.swift <<'SWIFT'
+          enum MSALConfig {
+              static let clientId = "00000000-0000-0000-0000-000000000000"
+              static let tenantId = "common"
+              static let redirectUri = ""
+              static let authority = "https://login.microsoftonline.com/common"
+              static let scopes = ["User.Read"]
+          }
+          SWIFT
+      - run: swift build
+      - name: MCP smoke test
+        run: |
+          printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"tools/list"}' \
+            | .build/debug/bettermsfile --mcp | grep -q '"list_locations"'

@@ -1,5 +1,10 @@
 import Foundation
+#if canImport(PDFKit)
 import PDFKit
+#endif
+#if canImport(Glibc)
+import Glibc
+#endif
 
 /// Headless MCP server: `BetterMSFile --mcp` speaks MCP (JSON-RPC, newline-delimited) over stdio.
 /// Reuses the signed-in MSAL session from the keychain; never shows UI.
@@ -24,13 +29,10 @@ enum MCPServer {
         Task {
             auth.allowsInteractiveSignIn = false
             await auth.restoreSession()
-            do {
-                // ponytail: requests handled one at a time; spawn a Task per call if agents need parallelism.
-                for try await line in FileHandle.standardInput.bytes.lines {
-                    await handle(line)
-                }
-            } catch {
-                FileHandle.standardError.write(Data("stdin error: \(error)\n".utf8))
+            // ponytail: requests handled one at a time; spawn a Task per call if agents need parallelism.
+            // readLine (not FileHandle.bytes) so the same loop runs on Linux.
+            while let line = await Task.detached(operation: { readLine() }).value {
+                await handle(line)
             }
             exit(0)
         }
@@ -196,7 +198,7 @@ enum MCPServer {
             try await readText(ItemRef(try args.require("id")))
         },
         Tool(name: "download_file",
-             description: "Download a file to the user's Mac and return the local path.",
+             description: "Download a file to the user's computer and return the local path.",
              kind: .read,
              params: ["id": idParam, "to_dir": (type: "string", description: "Local folder, default ~/Downloads")],
              required: ["id"]) { args in
@@ -210,7 +212,7 @@ enum MCPServer {
             return try json(["path": dest.path])
         },
         Tool(name: "upload_file",
-             description: "Upload a local file from the user's Mac into a folder. If the name exists, a numbered copy is created.",
+             description: "Upload a local file from the user's computer into a folder. If the name exists, a numbered copy is created.",
              kind: .write,
              params: [
                 "local_path": (type: "string", description: "Absolute path of the local file"),
@@ -287,8 +289,7 @@ enum MCPServer {
 
         var text: String
         if ext == "pdf" || officeExtensions.contains(ext) {
-            guard let pdf = PDFDocument(url: temp) else { throw ToolError("Could not read \(file.name).") }
-            text = pdf.string ?? ""
+            text = try pdfText(temp, name: file.name)
         } else {
             let data = try Data(contentsOf: temp)
             guard !data.contains(0), let decoded = String(data: data, encoding: .utf8) else {
@@ -301,6 +302,27 @@ enum MCPServer {
         }
         return text
     }
+
+    #if canImport(PDFKit)
+    private static func pdfText(_ url: URL, name: String) throws -> String {
+        guard let pdf = PDFDocument(url: url) else { throw ToolError("Could not read \(name).") }
+        return pdf.string ?? ""
+    }
+    #else
+    /// No PDFKit on Linux: poppler's `pdftotext` (package poppler-utils).
+    private static func pdfText(_ url: URL, name: String) throws -> String {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = ["pdftotext", "-layout", url.path, "-"]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        do { try process.run() } catch { throw ToolError("Reading PDFs needs pdftotext (install poppler-utils).") }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else { throw ToolError("Could not read \(name).") }
+        return String(decoding: data, as: UTF8.self)
+    }
+    #endif
 
     private static func describe(_ f: UnifiedFile) -> [String: Any] {
         var d: [String: Any] = [

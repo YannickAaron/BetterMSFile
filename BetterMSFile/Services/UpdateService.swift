@@ -1,4 +1,8 @@
 import Foundation
+import Observation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 // MARK: - GitHub Release Response
 

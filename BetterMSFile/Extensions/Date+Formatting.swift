@@ -2,9 +2,8 @@ import Foundation
 
 extension Date {
     var relativeFormatted: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: self, relativeTo: .now)
+        // FormatStyle rather than RelativeDateTimeFormatter, which Linux Foundation lacks.
+        formatted(.relative(presentation: .numeric, unitsStyle: .abbreviated))
     }
 }
 

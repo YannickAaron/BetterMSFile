@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-BetterMSFile is a native macOS app (Swift/SwiftUI) that provides a unified file browser for Microsoft 365 (OneDrive, SharePoint, Teams). It communicates with the Microsoft Graph API for file operations and uses MSAL for authentication.
+BetterMSFile is a native app that provides a unified file browser for Microsoft 365 (OneDrive, SharePoint, Teams), for macOS (Swift/SwiftUI, MSAL) and Linux (Swift + GTK 4/libadwaita via adwaita-swift, beta). It communicates with the Microsoft Graph API for file operations. The same binary also runs as an MCP server (`--mcp`) for AI agents.
 
 ## Architecture
 
@@ -29,12 +29,24 @@ BetterMSFile/
 ├── Models/        # SwiftData models (UnifiedFile, FileSource)
 ├── ViewModels/    # View state management
 ├── Views/         # SwiftUI components
+├── MCP/           # MCP server (shared with Linux)
 ├── Extensions/    # Utility extensions
 └── Config.swift   # Azure AD credentials (not committed)
+Linux/Sources/     # Linux app: adwaita-swift UI, OAuth+PKCE AuthService, FolderBrowser, CLI entry
+Package.swift      # SwiftPM manifest for the Linux build (lists the shared files it compiles)
 design/            # Icon source + design specs
 docs/              # GitHub Pages website
-scripts/           # release.sh, ExportOptions.plist, DMG background
+scripts/           # release.sh (macOS), install-linux.sh (Linux), ExportOptions.plist, DMG background
 ```
+
+## Linux Build
+
+- `Package.swift` compiles shared files **in place** from `BetterMSFile/` (explicit `sources:` list) plus `Linux/Sources`. No code is moved; the Xcode project is untouched.
+- Linux provides same-named stand-ins for Apple-only types: `AuthService` (OAuth auth code + PKCE, refresh token via `secret-tool`) and `UnifiedFile` (plain class, no SwiftData). Keep their API in sync with the macOS versions.
+- Shared files must compile on Linux: `import Observation` next to `@Observable`, `#if canImport(FoundationNetworking)` where `URLSession`/`URLRequest` are used, no AppKit/SwiftUI/SwiftData/PDFKit (guard with `#if canImport`), no `RelativeDateTimeFormatter`.
+- Sign-in reuses the Mac redirect URI (`MSALConfig.redirectUri`); the app registers itself as the scheme handler and receives the redirect via `--auth-callback`. Don't switch to a localhost redirect — that needs app-registration changes.
+- UI gotchas (adwaita-swift): GTK's loop doesn't drain Swift's main queue, so `LinuxApp` pumps it; wrap reads of `@Observable` models in `observe { }`; give every `.dialog`/`.alertDialog` on a view a unique `id:`; `MenuButton` actions are shared per label, so look up the target instead of capturing it.
+- Build/test in a container: `swift:6.4-resolute` + `libadwaita-1-dev libgtk-4-dev` (needs GTK ≥ 4.20). CI: `.github/workflows/linux.yml`.
 
 ## Key Conventions
 
@@ -91,13 +103,20 @@ The script:
 
 ## Build & Run
 
+**macOS**
 1. Requires Xcode and macOS 26.2+
 2. `Config.swift` must contain valid Azure AD credentials (client ID, tenant ID) — this file is not committed
 3. Open `BetterMSFile.xcodeproj`, build and run
 
+**Linux**
+1. GTK ≥ 4.20, libadwaita ≥ 1.8, Swift 6.3+ (Ubuntu 26.04 / Fedora 43+)
+2. Same `Config.swift`
+3. `swift build && .build/debug/bettermsfile`, or `./scripts/install-linux.sh` to install for the user
+
 ## Dependencies
 
-- **MSAL** (Microsoft Authentication Library) — via Swift Package Manager
+- **MSAL** (Microsoft Authentication Library) — via Swift Package Manager (macOS)
+- **adwaita-swift** (pinned commit) and **swift-crypto** — via `Package.swift` (Linux)
 
 ## Common Pitfalls
 
