@@ -1,0 +1,384 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+<defs>
+
+  <!-- ══ SHADOWS / FILTERS ══ -->
+  <filter id="fCard" x="-20%" y="-20%" width="140%" height="140%">
+    <feGaussianBlur in="SourceAlpha" stdDeviation="22"/>
+    <feOffset dx="0" dy="14"/>
+    <feComposite in2="SourceGraphic" operator="out"/>
+    <feColorMatrix type="matrix" values="0 0 0 0 0.04  0 0 0 0 0.08  0 0 0 0 0.18  0 0 0 0.55 0"/>
+    <feBlend in="SourceGraphic" mode="normal"/>
+  </filter>
+  <filter id="fCardShadow">
+    <feDropShadow dx="0" dy="16" stdDeviation="22" flood-color="#08112b" flood-opacity="0.52"/>
+  </filter>
+  <filter id="fDoc">
+    <feDropShadow dx="3" dy="7" stdDeviation="10" flood-color="#0c1a3a" flood-opacity="0.20"/>
+  </filter>
+  <filter id="fDocBack">
+    <feDropShadow dx="5" dy="8" stdDeviation="8"  flood-color="#0c1a3a" flood-opacity="0.14"/>
+  </filter>
+  <filter id="fFolder">
+    <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#0c1a3a" flood-opacity="0.38"/>
+  </filter>
+  <filter id="fLens">
+    <feDropShadow dx="4" dy="10" stdDeviation="14" flood-color="#050c1e" flood-opacity="0.60"/>
+  </filter>
+  <filter id="fHandle">
+    <feDropShadow dx="2" dy="6" stdDeviation="7"  flood-color="#050c1e" flood-opacity="0.50"/>
+  </filter>
+  <filter id="fBadge">
+    <feDropShadow dx="2" dy="5" stdDeviation="7"  flood-color="#0c1a3a" flood-opacity="0.40"/>
+  </filter>
+
+  <!-- ══ CARD GRADIENTS ══ -->
+  <linearGradient id="gCard" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#f2f5fc"/>
+    <stop offset="100%" stop-color="#d8dff0"/>
+  </linearGradient>
+  <radialGradient id="gCardSheen" cx="35%" cy="18%" r="65%">
+    <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.65"/>
+    <stop offset="100%" stop-color="#ffffff" stop-opacity="0.00"/>
+  </radialGradient>
+
+  <!-- ══ DOCUMENT ══ -->
+  <linearGradient id="gDoc" x1="0" y1="0" x2="0.08" y2="1">
+    <stop offset="0%"   stop-color="#ffffff"/>
+    <stop offset="100%" stop-color="#edf1f9"/>
+  </linearGradient>
+  <linearGradient id="gDocBack" x1="0" y1="0" x2="0.05" y2="1">
+    <stop offset="0%"   stop-color="#f0f4fb"/>
+    <stop offset="100%" stop-color="#dde3f2"/>
+  </linearGradient>
+
+  <!-- ══ FOLDER ══ -->
+  <linearGradient id="gFolderBody" x1="0.05" y1="0" x2="0.92" y2="1">
+    <stop offset="0%"   stop-color="#5b9eff"/>
+    <stop offset="42%"  stop-color="#3d7ff5"/>
+    <stop offset="100%" stop-color="#1a57e3"/>
+  </linearGradient>
+  <linearGradient id="gFolderTab" x1="0" y1="0" x2="0.3" y2="1">
+    <stop offset="0%"   stop-color="#4d90f6"/>
+    <stop offset="100%" stop-color="#1e5fe2"/>
+  </linearGradient>
+  <linearGradient id="gFolderBack" x1="0" y1="0" x2="0.2" y2="1">
+    <stop offset="0%"   stop-color="#3a78f0"/>
+    <stop offset="100%" stop-color="#1248cc"/>
+  </linearGradient>
+  <!-- Left-side darker edge for depth -->
+  <linearGradient id="gFolderLeftEdge" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%"   stop-color="#1a50d4" stop-opacity="0.40"/>
+    <stop offset="100%" stop-color="#1a50d4" stop-opacity="0.00"/>
+  </linearGradient>
+  <!-- Top highlight strip -->
+  <linearGradient id="gFolderTop" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#ffffff" stop-opacity="0.28"/>
+    <stop offset="100%" stop-color="#ffffff" stop-opacity="0.00"/>
+  </linearGradient>
+  <!-- Bottom shadow strip -->
+  <linearGradient id="gFolderBottom" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%"   stop-color="#000000" stop-opacity="0.00"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0.18"/>
+  </linearGradient>
+
+  <!-- ══ MAGNIFYING GLASS ══ -->
+  <linearGradient id="gRing" x1="0.2" y1="0" x2="0.8" y2="1">
+    <stop offset="0%"   stop-color="#3a3d46"/>
+    <stop offset="50%"  stop-color="#1e2029"/>
+    <stop offset="100%" stop-color="#14161d"/>
+  </linearGradient>
+  <radialGradient id="gLens" cx="35%" cy="30%" r="68%">
+    <stop offset="0%"   stop-color="#e4f3ff"/>
+    <stop offset="28%"  stop-color="#aed4f7"/>
+    <stop offset="62%"  stop-color="#5fa8e8"/>
+    <stop offset="100%" stop-color="#2b75c9"/>
+  </radialGradient>
+  <radialGradient id="gLensDepth" cx="60%" cy="65%" r="50%">
+    <stop offset="0%"   stop-color="#1650a8" stop-opacity="0.45"/>
+    <stop offset="100%" stop-color="#1650a8" stop-opacity="0.00"/>
+  </radialGradient>
+  <linearGradient id="gHandle" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%"   stop-color="#44474f"/>
+    <stop offset="45%"  stop-color="#25272e"/>
+    <stop offset="100%" stop-color="#16181e"/>
+  </linearGradient>
+
+  <!-- ══ FINDER BADGE ══ -->
+  <linearGradient id="gFinderLeft" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%"   stop-color="#1d60e8"/>
+    <stop offset="100%" stop-color="#2570f0"/>
+  </linearGradient>
+  <linearGradient id="gFinderRight" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%"   stop-color="#4592ff"/>
+    <stop offset="100%" stop-color="#5aa8ff"/>
+  </linearGradient>
+
+  <!-- ══ SHAREPOINT BADGE ══ -->
+  <linearGradient id="gSPBack" x1="0" y1="0" x2="0.7" y2="1">
+    <stop offset="0%"   stop-color="#0f8a8f"/>
+    <stop offset="100%" stop-color="#076b70"/>
+  </linearGradient>
+  <radialGradient id="gSPBubble" cx="38%" cy="35%" r="62%">
+    <stop offset="0%"   stop-color="#4ce8cb"/>
+    <stop offset="100%" stop-color="#1fc9ae"/>
+  </radialGradient>
+
+  <!-- ══ ONEDRIVE CLOUD ══ -->
+  <linearGradient id="gOD1" x1="0" y1="0.5" x2="1" y2="1">
+    <stop offset="0%"   stop-color="#3fa9f8"/>
+    <stop offset="100%" stop-color="#1478e8"/>
+  </linearGradient>
+  <linearGradient id="gOD2" x1="0" y1="0" x2="0.5" y2="1">
+    <stop offset="0%"   stop-color="#62bcff"/>
+    <stop offset="100%" stop-color="#2590f5"/>
+  </linearGradient>
+
+  <!-- ══ CLIP PATHS ══ -->
+  <clipPath id="cpFinder">
+    <rect x="0" y="0" width="80" height="80" rx="16"/>
+  </clipPath>
+  <clipPath id="cpSP">
+    <rect x="0" y="0" width="52" height="52" rx="11"/>
+  </clipPath>
+  <clipPath id="cpFolder">
+    <path d="M82,208 L428,208 Q442,208 442,222 L442,402 Q442,416 428,416 L96,416 Q82,416 82,402 Z"/>
+  </clipPath>
+
+</defs>
+
+<!-- ████████████████████████████████████████
+     1. WHITE ROUNDED CARD (transparent bg)
+     ████████████████████████████████████████ -->
+<rect x="18" y="18" width="476" height="476" rx="92"
+      fill="url(#gCard)" filter="url(#fCardShadow)"/>
+<!-- Sheen overlay -->
+<rect x="18" y="18" width="476" height="476" rx="92"
+      fill="url(#gCardSheen)"/>
+<!-- Subtle inner stroke -->
+<rect x="18" y="18" width="476" height="476" rx="92"
+      fill="none" stroke="white" stroke-width="1.5" stroke-opacity="0.7"/>
+
+<!-- ████████████████████████████████████████
+     2. BACK DOCUMENT (offset right/behind)
+     ████████████████████████████████████████ -->
+<g filter="url(#fDocBack)">
+  <rect x="180" y="58" width="196" height="224" rx="14"
+        fill="url(#gDocBack)"/>
+  <!-- Subtle page edge shadow on left of back doc -->
+  <rect x="180" y="58" width="12" height="224" rx="6"
+        fill="#c8d0e8" opacity="0.35"/>
+</g>
+
+<!-- ████████████████████████████████████████
+     3. FRONT DOCUMENT
+     ████████████████████████████████████████ -->
+<g filter="url(#fDoc)">
+  <rect x="148" y="68" width="210" height="228" rx="14"
+        fill="url(#gDoc)"/>
+  <!-- Left-edge shadow for depth -->
+  <rect x="148" y="68" width="14" height="228" rx="7"
+        fill="#b8c4de" opacity="0.25"/>
+  <!-- Top-edge highlight -->
+  <rect x="148" y="68" width="210" height="8" rx="4"
+        fill="white" opacity="0.80"/>
+</g>
+
+<!-- ────── ONEDRIVE LOGO ────── -->
+<!-- Three overlapping cloud shapes in Microsoft blue -->
+<g transform="translate(163, 105)">
+  <!-- Back-left small cloud -->
+  <g opacity="0.82">
+    <ellipse cx="18" cy="30" rx="17" ry="13" fill="url(#gOD1)"/>
+    <rect    x="2"  y="22"  width="30" height="14" fill="url(#gOD1)"/>
+    <ellipse cx="30" cy="23" rx="14" ry="10" fill="url(#gOD1)"/>
+  </g>
+  <!-- Front-right main cloud -->
+  <ellipse cx="50" cy="36" rx="21"  ry="15" fill="url(#gOD2)"/>
+  <ellipse cx="34" cy="26" rx="20"  ry="16" fill="url(#gOD2)"/>
+  <ellipse cx="62" cy="30" rx="12"  ry="10" fill="url(#gOD2)"/>
+  <rect    x="13"  y="26"  width="62" height="22" fill="url(#gOD2)"/>
+  <!-- Bottom roundoff -->
+  <rect    x="13"  y="40"  width="62" height="8" rx="4" fill="url(#gOD2)"/>
+  <!-- Cloud shine highlights -->
+  <ellipse cx="30" cy="19" rx="12" ry="7" fill="white" opacity="0.25" transform="rotate(-22 30 19)"/>
+  <ellipse cx="52" cy="22" rx="8"  ry="4.5" fill="white" opacity="0.18" transform="rotate(-18 52 22)"/>
+</g>
+
+<!-- ────── SHAREPOINT LOGO ────── -->
+<g transform="translate(266, 99)">
+  <!-- Teal square with rounded corners -->
+  <rect x="0" y="0" width="52" height="52" rx="11" fill="url(#gSPBack)" clip-path="url(#cpSP)"/>
+  <!-- Inner subtle gradient overlay -->
+  <rect x="0" y="0" width="52" height="20" rx="5" fill="white" opacity="0.10"/>
+  <!-- "S" letter in white -->
+  <text x="18" y="36"
+        font-family="'Segoe UI', 'Arial Black', Arial, sans-serif"
+        font-weight="800" font-size="28" fill="white" letter-spacing="-1">S</text>
+  <!-- Green bubble overlapping bottom-right -->
+  <circle cx="41" cy="41" r="19" fill="url(#gSPBubble)"/>
+  <!-- Bubble inner glow ring -->
+  <circle cx="41" cy="41" r="13" fill="none" stroke="white" stroke-width="2" stroke-opacity="0.20"/>
+  <!-- Bubble shine -->
+  <ellipse cx="36" cy="35" rx="7" ry="4.5" fill="white" opacity="0.28" transform="rotate(-30 36 35)"/>
+</g>
+
+<!-- ────── DOCUMENT TEXT LINES ────── -->
+<rect x="172" y="200" width="148" height="7"  rx="3.5" fill="#bcc8e0" opacity="0.85"/>
+<rect x="172" y="216" width="112" height="7"  rx="3.5" fill="#bcc8e0" opacity="0.65"/>
+
+<!-- ████████████████████████████████████████
+     4. FOLDER — BACK FLAP (darker, right side)
+     ████████████████████████████████████████ -->
+<path d="M370,195 L428,195 Q442,195 442,209 L442,260 L370,260 Z"
+      fill="url(#gFolderBack)" filter="url(#fFolder)"/>
+
+<!-- ████████████████████████████████████████
+     5. FOLDER — MAIN BODY
+     ████████████████████████████████████████ -->
+<g filter="url(#fFolder)">
+  <!-- Tab bump at top-left -->
+  <path d="M82,208
+           L82,190 Q82,177 95,177
+           L202,177 Q213,177 218,168
+           L228,152 Q233,142 244,142
+           L272,142 Q284,142 284,155
+           L284,177 L284,208 Z"
+        fill="url(#gFolderTab)"/>
+
+  <!-- Folder body -->
+  <path d="M82,208 L428,208 Q442,208 442,222
+           L442,402 Q442,416 428,416
+           L96,416  Q82,416  82,402 Z"
+        fill="url(#gFolderBody)"/>
+</g>
+
+<!-- ── Folder shading & highlights (clipped to folder body) ── -->
+<g clip-path="url(#cpFolder)">
+  <!-- Top-edge highlight sheen -->
+  <rect x="82" y="208" width="360" height="40"
+        fill="url(#gFolderTop)"/>
+  <!-- Left-edge depth darkening -->
+  <rect x="82" y="208" width="90" height="210"
+        fill="url(#gFolderLeftEdge)"/>
+  <!-- Bottom shadow for ground feel -->
+  <rect x="82" y="350" width="360" height="66"
+        fill="url(#gFolderBottom)"/>
+  <!-- Subtle diagonal sheen sweep -->
+  <path d="M82,208 L320,208 L260,290 L82,290 Z"
+        fill="white" opacity="0.04"/>
+</g>
+
+<!-- Tab highlight -->
+<path d="M82,195 L284,195 L284,208 L82,208 Z"
+      fill="white" opacity="0.06"/>
+<!-- Tab inner top highlight line -->
+<path d="M95,180 L268,180" stroke="white" stroke-width="2"
+      stroke-opacity="0.18" stroke-linecap="round"/>
+
+<!-- ████████████████████████████████████████
+     6. MAGNIFYING GLASS HANDLE
+     ████████████████████████████████████████ -->
+<g filter="url(#fHandle)">
+  <line x1="356" y1="340" x2="426" y2="412"
+        stroke="url(#gHandle)" stroke-width="34" stroke-linecap="round"/>
+  <!-- Handle highlight edge -->
+  <line x1="349" y1="334" x2="419" y2="406"
+        stroke="white" stroke-width="5" stroke-linecap="round" stroke-opacity="0.10"/>
+</g>
+
+<!-- ████████████████████████████████████████
+     7. MAGNIFYING GLASS LENS
+     ████████████████████████████████████████ -->
+<g filter="url(#fLens)">
+  <!-- Outer dark metal ring -->
+  <circle cx="300" cy="280" r="78" fill="url(#gRing)"/>
+  <!-- Ring inner highlight (lighter top arc) -->
+  <circle cx="300" cy="280" r="78"
+          fill="none" stroke="white" stroke-width="3" stroke-opacity="0.10"/>
+  <!-- Ring outer edge subtle glow -->
+  <circle cx="300" cy="280" r="79"
+          fill="none" stroke="white" stroke-width="1.5" stroke-opacity="0.07"/>
+
+  <!-- Glass lens fill -->
+  <circle cx="300" cy="280" r="57" fill="url(#gLens)"/>
+  <!-- Depth darkening in lower-right -->
+  <circle cx="300" cy="280" r="57" fill="url(#gLensDepth)"/>
+
+  <!-- ── Lens reflections ── -->
+  <!-- Primary large elliptical highlight (top-left) -->
+  <ellipse cx="276" cy="255" rx="25" ry="15"
+           fill="white" opacity="0.50" transform="rotate(-42 276 255)"/>
+  <!-- Secondary smaller glint -->
+  <ellipse cx="290" cy="244" rx="12" ry="7"
+           fill="white" opacity="0.30" transform="rotate(-40 290 244)"/>
+  <!-- Tiny specular dot -->
+  <circle  cx="268" cy="250" r="4.5" fill="white" opacity="0.55"/>
+  <!-- Bottom right subtle blue reflection -->
+  <ellipse cx="322" cy="308" rx="16" ry="9"
+           fill="#9eceff" opacity="0.28" transform="rotate(-42 322 308)"/>
+
+  <!-- Ring inner shadow groove -->
+  <circle cx="300" cy="280" r="60"
+          fill="none" stroke="#08101f" stroke-width="4" stroke-opacity="0.25"/>
+</g>
+
+<!-- ████████████████████████████████████████
+     8. FINDER BADGE (bottom-left of folder)
+     ████████████████████████████████████████ -->
+<g transform="translate(102, 310)" filter="url(#fBadge)">
+  <clipPath id="cpFinderInner">
+    <rect x="0" y="0" width="80" height="80" rx="16"/>
+  </clipPath>
+
+  <!-- Base shape -->
+  <rect x="0" y="0" width="80" height="80" rx="16" fill="#1e63ec"/>
+
+  <g clip-path="url(#cpFinderInner)">
+    <!-- Left half (darker blue) -->
+    <rect x="0"  y="0" width="40" height="80" fill="url(#gFinderLeft)"/>
+    <!-- Right half (lighter blue) -->
+    <rect x="40" y="0" width="40" height="80" fill="url(#gFinderRight)"/>
+
+    <!-- Center divider shadow line -->
+    <rect x="37" y="0" width="3" height="80" fill="#0d40bb" opacity="0.30"/>
+
+    <!-- Top sheen -->
+    <rect x="0" y="0" width="80" height="18" rx="0" fill="white" opacity="0.10"/>
+
+    <!-- ── LEFT EYE ── -->
+    <!-- Eye white -->
+    <ellipse cx="22" cy="29" rx="11" ry="12" fill="white"/>
+    <!-- Pupil -->
+    <circle  cx="24" cy="31" r="6.5" fill="#1a1f2e"/>
+    <!-- Pupil shine -->
+    <circle  cx="26" cy="28.5" r="2.5" fill="white"/>
+    <!-- Iris ring -->
+    <circle  cx="24" cy="31" r="6.5" fill="none" stroke="#2a3050" stroke-width="1" stroke-opacity="0.4"/>
+
+    <!-- ── RIGHT EYE ── -->
+    <!-- Eye white -->
+    <ellipse cx="58" cy="29" rx="11" ry="12" fill="white"/>
+    <!-- Pupil -->
+    <circle  cx="60" cy="31" r="6.5" fill="#1a1f2e"/>
+    <!-- Pupil shine -->
+    <circle  cx="62" cy="28.5" r="2.5" fill="white"/>
+    <!-- Iris ring -->
+    <circle  cx="60" cy="31" r="6.5" fill="none" stroke="#2a3050" stroke-width="1" stroke-opacity="0.4"/>
+
+    <!-- ── SMILE ── -->
+    <path d="M15,52 Q40,72 65,52"
+          stroke="white" stroke-width="4.5"
+          fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Smile under-shadow for depth -->
+    <path d="M15,52 Q40,72 65,52"
+          stroke="#0840bb" stroke-width="2"
+          fill="none" stroke-linecap="round" opacity="0.25"
+          transform="translate(0,3)"/>
+  </g>
+
+  <!-- Badge border highlight -->
+  <rect x="0" y="0" width="80" height="80" rx="16"
+        fill="none" stroke="white" stroke-width="1.5" stroke-opacity="0.25"/>
+</g>
+
+</svg>

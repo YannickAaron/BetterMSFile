@@ -3,169 +3,94 @@ set -euo pipefail
 
 # ──────────────────────────────────────────────────────────────────────
 # BetterMSFile Release Script
-# Creates a professional DMG (background + Applications shortcut +
-# icon layout) and publishes a GitHub release.
+# Builds the app (Release), packages a DMG (background + Applications
+# shortcut + icon layout) and publishes a GitHub release.
+# Version is read from MARKETING_VERSION in the Xcode project.
 #
-# Usage:  ./scripts/release.sh <version> <path-to-app>
-# Example: ./scripts/release.sh 1.65 ./BetterMSFileV1.65.app
+# Usage:  ./scripts/release.sh [--dmg-only] [--no-tag] [--notes FILE] [--app PATH]
 #
-# Options:
 #   --dmg-only    Build the DMG but skip tagging & GitHub release
 #   --no-tag      Skip git tag creation (use when tag already exists)
 #   --notes FILE  Read release notes from FILE instead of --generate-notes
+#   --app PATH    Package an already-built .app instead of building
+#   --skip-notarize  Skip notarization (local testing only)
+#
+# Notarization needs a one-time keychain profile:
+#   xcrun notarytool store-credentials BetterMSFile-notary \
+#       --apple-id <apple-id> --team-id RCX5S5E3D8 --password <app-specific-password>
 # ──────────────────────────────────────────────────────────────────────
 
 APP_NAME="BetterMSFile"
 REPO="YannickAaron/BetterMSFile"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+PROJECT="${ROOT}/${APP_NAME}.xcodeproj"
+BUILD_DIR="${ROOT}/build"
+cd "$ROOT"
 
-# --- Parse flags ---
 DMG_ONLY=false
 SKIP_TAG=false
 NOTES_FILE=""
+APP_PATH=""
+NOTARIZE=true
+NOTARY_PROFILE="BetterMSFile-notary"
 
-POSITIONAL=()
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --dmg-only)  DMG_ONLY=true; shift ;;
         --no-tag)    SKIP_TAG=true; shift ;;
         --notes)     NOTES_FILE="$2"; shift 2 ;;
-        *)           POSITIONAL+=("$1"); shift ;;
+        --app)       APP_PATH="$2"; shift 2 ;;
+        --skip-notarize) NOTARIZE=false; shift ;;
+        *)           echo "Unknown argument: $1"; exit 1 ;;
     esac
 done
-set -- "${POSITIONAL[@]}"
 
-# --- Validate inputs ---
+VERSION=$(xcodebuild -project "$PROJECT" -scheme "$APP_NAME" -showBuildSettings 2>/dev/null \
+    | awk '/ MARKETING_VERSION =/ && !v {v=$3} END {print v}')
+[ -n "$VERSION" ] || { echo "Error: could not read MARKETING_VERSION."; exit 1; }
+TAG="v${VERSION}"
+DMG_NAME="${BUILD_DIR}/${APP_NAME}-${TAG}.dmg"
+mkdir -p "$BUILD_DIR"
 
-if [ $# -lt 2 ]; then
-    echo "Usage: $0 [--dmg-only] [--no-tag] [--notes FILE] <version> <path-to-.app>"
-    echo ""
-    echo "Examples:"
-    echo "  $0 1.65 ./BetterMSFileV1.65.app"
-    echo "  $0 --dmg-only 1.65 ./BetterMSFileV1.65.app"
-    echo "  $0 --notes release-notes.md 1.65 ./BetterMSFileV1.65.app"
-    exit 1
-fi
-
-VERSION="$1"
-APP_PATH="$2"
-
-if [ ! -d "$APP_PATH" ]; then
-    echo "Error: '$APP_PATH' does not exist or is not a directory."
-    exit 1
-fi
-
-if [[ ! "$APP_PATH" == *.app ]]; then
-    echo "Error: '$APP_PATH' does not look like a .app bundle."
-    exit 1
+if [ "$NOTARIZE" = true ]; then
+    xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" &>/dev/null \
+        || { echo "Error: notary profile '$NOTARY_PROFILE' missing. See header of this script."; exit 1; }
+elif [ "$DMG_ONLY" = false ]; then
+    echo "Error: --skip-notarize only allowed with --dmg-only."; exit 1
 fi
 
 if [ "$DMG_ONLY" = false ]; then
-    if ! command -v gh &>/dev/null; then
-        echo "Error: GitHub CLI (gh) is not installed. Install with: brew install gh"
-        exit 1
-    fi
-    if ! gh auth status &>/dev/null; then
-        echo "Error: GitHub CLI is not authenticated. Run: gh auth login"
-        exit 1
+    command -v gh &>/dev/null || { echo "Error: gh not installed. brew install gh"; exit 1; }
+    gh auth status &>/dev/null || { echo "Error: gh not authenticated. Run: gh auth login"; exit 1; }
+    [ -z "$(git status --porcelain)" ] || { echo "Error: working tree dirty. Commit first."; exit 1; }
+    if git ls-remote --exit-code --tags origin "$TAG" &>/dev/null && [ "$SKIP_TAG" = false ]; then
+        echo "Error: tag ${TAG} already on origin. Bump MARKETING_VERSION or pass --no-tag."; exit 1
     fi
 fi
 
-if ! command -v python3 &>/dev/null; then
-    echo "Error: python3 is required for background image generation."
-    exit 1
+echo "==> Releasing ${APP_NAME} ${TAG}"
+
+# ──────────────────────────────────────────────────────────────────────
+# Step 1: Build app
+# ──────────────────────────────────────────────────────────────────────
+
+if [ -z "$APP_PATH" ]; then
+    [ -f "${ROOT}/${APP_NAME}/Config.swift" ] || { echo "Error: ${APP_NAME}/Config.swift missing (copy Config.swift.example)."; exit 1; }
+    echo "==> Building (Release)..."
+    rm -rf "${BUILD_DIR}/${APP_NAME}.xcarchive" "${BUILD_DIR}/export"
+    xcodebuild -project "$PROJECT" -scheme "$APP_NAME" -configuration Release \
+        -destination "generic/platform=macOS" -allowProvisioningUpdates \
+        -archivePath "${BUILD_DIR}/${APP_NAME}.xcarchive" -quiet archive
+    xcodebuild -exportArchive -allowProvisioningUpdates \
+        -archivePath "${BUILD_DIR}/${APP_NAME}.xcarchive" \
+        -exportOptionsPlist "${SCRIPT_DIR}/ExportOptions.plist" \
+        -exportPath "${BUILD_DIR}/export" -quiet
+    APP_PATH="${BUILD_DIR}/export/${APP_NAME}.app"
 fi
+[ -d "$APP_PATH" ] || { echo "Error: app not found at $APP_PATH"; exit 1; }
 
-TAG="v${VERSION}"
-DMG_NAME="${APP_NAME}-${TAG}.dmg"
-
-echo ""
-echo "╔══════════════════════════════════════════╗"
-echo "║  BetterMSFile Release Builder            ║"
-echo "╚══════════════════════════════════════════╝"
-echo ""
-echo "  Version:  ${TAG}"
-echo "  App:      ${APP_PATH}"
-echo "  DMG:      ${DMG_NAME}"
-echo "  DMG-only: ${DMG_ONLY}"
-echo ""
-
-# ──────────────────────────────────────────────────────────────────────
-# Step 1: Generate DMG background image
-# ──────────────────────────────────────────────────────────────────────
-
-echo "==> Generating DMG background image..."
-
-BACKGROUND_PNG=$(mktemp /tmp/dmg_bg_XXXXXX.png)
-
-python3 - "$BACKGROUND_PNG" << 'PYEOF'
-import sys
-try:
-    from PIL import Image, ImageDraw, ImageFont
-except ImportError:
-    print("Error: Pillow is not installed. Run: pip3 install Pillow", file=sys.stderr)
-    sys.exit(1)
-
-output_path = sys.argv[1]
-
-WIDTH, HEIGHT = 660, 400
-BG = (30, 30, 32)
-ARROW = (120, 120, 125)
-TEXT = (180, 180, 185)
-SUBTLE = (130, 130, 135)
-
-img = Image.new("RGBA", (WIDTH, HEIGHT), BG)
-draw = ImageDraw.Draw(img)
-
-# Subtle gradient at top
-for y in range(80):
-    a = int(40 * (1 - y / 80))
-    draw.line([(0, y), (WIDTH, y)], fill=(255, 255, 255, a))
-
-# Arrow — center of image
-cx, cy = WIDTH // 2, HEIGHT // 2 - 10
-shaft_w, shaft_h = 80, 8
-draw.rounded_rectangle(
-    [cx - shaft_w//2, cy - shaft_h//2, cx + shaft_w//2, cy + shaft_h//2],
-    radius=4, fill=ARROW
-)
-head = 24
-draw.polygon([
-    (cx + shaft_w//2 - 2, cy - head),
-    (cx + shaft_w//2 + head + 6, cy),
-    (cx + shaft_w//2 - 2, cy + head),
-], fill=ARROW)
-
-# Load fonts
-for path in ["/System/Library/Fonts/SFCompact.ttf",
-             "/System/Library/Fonts/Helvetica.ttc",
-             "/System/Library/Fonts/HelveticaNeue.ttc"]:
-    try:
-        font = ImageFont.truetype(path, 15)
-        font_sm = ImageFont.truetype(path, 12)
-        break
-    except Exception:
-        continue
-else:
-    font = ImageFont.load_default()
-    font_sm = font
-
-# "Drag to Applications to install"
-label = "Drag to Applications to install"
-bb = draw.textbbox((0, 0), label, font=font)
-draw.text(((WIDTH - (bb[2] - bb[0])) // 2, cy + 40), label, fill=TEXT, font=font)
-
-# Zone labels
-for text, x_center in [("BetterMSFile", WIDTH // 4), ("Applications", 3 * WIDTH // 4)]:
-    bb = draw.textbbox((0, 0), text, font=font_sm)
-    draw.text((x_center - (bb[2] - bb[0]) // 2, HEIGHT - 60), text, fill=SUBTLE, font=font_sm)
-
-# Bottom rule
-draw.line([(40, HEIGHT - 30), (WIDTH - 40, HEIGHT - 30)], fill=(60, 60, 65), width=1)
-
-img.save(output_path, "PNG")
-print(f"    Background: {output_path} ({WIDTH}x{HEIGHT})")
-PYEOF
+BACKGROUND_PNG="${SCRIPT_DIR}/dmg-background.png"
 
 # ──────────────────────────────────────────────────────────────────────
 # Step 2: Build professional DMG
@@ -256,7 +181,7 @@ rm -f "$DMG_NAME"
 hdiutil convert "$DMG_RW" -format UDZO -imagekey zlib-level=9 -o "$DMG_NAME" -quiet
 
 # Clean up temp files
-rm -rf "$STAGING" "$DMG_RW" "$BACKGROUND_PNG"
+rm -rf "$STAGING" "$DMG_RW"
 
 DMG_SIZE=$(du -h "$DMG_NAME" | cut -f1)
 echo "    Created ${DMG_NAME} (${DMG_SIZE})"
@@ -284,10 +209,18 @@ if [ "$VERIFY_OK" = false ]; then
 fi
 echo "    ✓ DMG verified: ${APP_NAME}.app + Applications symlink"
 
+if [ "$NOTARIZE" = true ]; then
+    echo "==> Signing & notarizing DMG (takes a few minutes)..."
+    codesign --sign "Developer ID Application" --timestamp "$DMG_NAME"
+    xcrun notarytool submit "$DMG_NAME" --keychain-profile "$NOTARY_PROFILE" --wait
+    xcrun stapler staple "$DMG_NAME"
+    spctl -a -t open --context context:primary-signature -v "$DMG_NAME"
+fi
+
 if [ "$DMG_ONLY" = true ]; then
     echo ""
     echo "==> DMG-only mode — skipping tag & release."
-    echo "    DMG: $(pwd)/${DMG_NAME}"
+    echo "    DMG: ${DMG_NAME}"
     exit 0
 fi
 
@@ -341,5 +274,3 @@ echo "  DMG contains:"
 echo "    • ${APP_NAME}.app  (drag to install)"
 echo "    • Applications shortcut"
 echo "    • Background with install instructions"
-echo ""
-echo "Reminder: Ensure MARKETING_VERSION in Xcode matches '${VERSION}'."

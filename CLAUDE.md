@@ -30,8 +30,10 @@ BetterMSFile/
 ├── ViewModels/    # View state management
 ├── Views/         # SwiftUI components
 ├── Extensions/    # Utility extensions
-├── Config.swift   # Azure AD credentials (not committed)
-└── scripts/       # Release automation
+└── Config.swift   # Azure AD credentials (not committed)
+design/            # Icon source + design specs
+docs/              # GitHub Pages website
+scripts/           # release.sh, ExportOptions.plist, DMG background
 ```
 
 ## Key Conventions
@@ -64,27 +66,23 @@ BetterMSFile/
 **Always use the release script** — never create DMGs or GitHub releases manually.
 
 ```bash
-# From the repo root:
-./scripts/release.sh <version> <path-to-app>
-
-# Examples:
-./scripts/release.sh 1.7 ./BetterMSFileV1.7.app
-./scripts/release.sh --notes release-notes.md 1.7 ./BetterMSFileV1.7.app
-./scripts/release.sh --dmg-only 1.7 ./BetterMSFileV1.7.app
+./scripts/release.sh                      # build, DMG, tag, GitHub release
+./scripts/release.sh --dmg-only           # build + DMG only (testing)
+./scripts/release.sh --notes notes.md     # custom release notes
+./scripts/release.sh --app path/to.app    # package existing .app, skip build
 ```
 
-The script handles everything:
-- Generates a background image with drag-to-install instructions
-- Creates a DMG with `BetterMSFile.app` + `Applications` symlink + Finder layout
-- Tags the commit, pushes the tag, creates the GitHub release
-- Verifies the DMG contents before uploading
+The script:
+- Reads the version from `MARKETING_VERSION` — bump it in Xcode, commit, then run
+- Archives (Release) and exports with Developer ID signing (`scripts/ExportOptions.plist`, team RCX5S5E3D8). Needs that team's account in Xcode → Settings → Accounts
+- Creates a DMG in `build/` with `BetterMSFile.app` + `Applications` symlink + background (`scripts/dmg-background.png`)
+- Refuses a dirty tree or an existing tag; tags, pushes, creates the GitHub release
 
 **Release conventions:**
 - Tag format: `v{VERSION}` (e.g., `v1.65`)
 - DMG name: `BetterMSFile-v{VERSION}.dmg`
 - App inside DMG is always named `BetterMSFile.app` (no version suffix) so users can drag-to-replace
 - Release title: `BetterMSFile v{VERSION}`
-- Ensure `MARKETING_VERSION` in Xcode matches the release version before building
 
 **Flags:**
 - `--dmg-only` — Build DMG without tagging or publishing (for testing)
@@ -100,7 +98,6 @@ The script handles everything:
 ## Dependencies
 
 - **MSAL** (Microsoft Authentication Library) — via Swift Package Manager
-- **Pillow** (Python) — used by `scripts/release.sh` to generate DMG background images. Install with `pip3 install Pillow` if not present.
 
 ## Common Pitfalls
 

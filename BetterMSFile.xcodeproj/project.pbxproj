@@ -14,9 +14,23 @@
 		C16B6EDA2F73D38900012FD0 /* BetterMSFile.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BetterMSFile.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C16B6F0D2F73DA5500012FD0 /* Exceptions for "BetterMSFile" folder in "BetterMSFile" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Config.swift.example,
+				Info.plist,
+			);
+			target = C16B6ED92F73D38900012FD0 /* BetterMSFile */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		C16B6EDC2F73D38900012FD0 /* BetterMSFile */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C16B6F0D2F73DA5500012FD0 /* Exceptions for "BetterMSFile" folder in "BetterMSFile" target */,
+			);
 			path = BetterMSFile;
 			sourceTree = "<group>";
 		};

@@ -39,6 +39,8 @@ Microsoft's default apps (OneDrive, SharePoint, Teams) scatter files across frag
 4. Open `BetterMSFile.xcodeproj` in Xcode
 5. Build and run
 
+Release: bump `MARKETING_VERSION`, commit, run `./scripts/release.sh` (see CLAUDE.md).
+
 ## Architecture
 
 ```
