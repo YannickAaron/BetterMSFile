@@ -141,6 +141,7 @@ BetterMSFile/
 └── Extensions/       # Utility extensions
 Linux/Sources/        # Linux app: GNOME UI, OAuth sign-in, folder browser, CLI entry point
 Package.swift         # SwiftPM manifest for the Linux build
+Vendor/               # adwaita-swift + its packages (vendored, MIT)
 scripts/              # release.sh (macOS DMG), package-linux.sh + install-linux.sh (Linux)
 .github/workflows/    # Linux CI build, tag-triggered release (DMG + Linux tarballs)
 ```
@@ -183,7 +184,7 @@ The Linux binary is also a small CLI: `bettermsfile --login`, `--logout`, `--age
 ## Dependencies
 
 - [MSAL for macOS](https://github.com/AzureAD/microsoft-authentication-library-for-objc) — Microsoft authentication (macOS, via SPM)
-- [adwaita-swift](https://git.aparoksha.dev/aparoksha/adwaita-swift) — GTK 4 / libadwaita UI with a SwiftUI-like API (Linux)
+- [adwaita-swift](https://git.aparoksha.dev/aparoksha/adwaita-swift) — GTK 4 / libadwaita UI with a SwiftUI-like API (Linux; vendored in `Vendor/` with its packages, see `Vendor/README.md`)
 - [swift-crypto](https://github.com/apple/swift-crypto) — SHA-256 for the PKCE sign-in (Linux)
 
 ## Graph API Scopes

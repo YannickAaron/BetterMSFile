@@ -1,0 +1,26 @@
+name: SwiftLint
+
+on:
+  push:
+    paths:
+      - '.gitea/workflows/swiftlint.yml'
+      - '.swiftlint.yml'
+      - '**/*.swift'
+  pull_request:
+    paths:
+      - '.gitea/workflows/swiftlint.yml'
+      - '.swiftlint.yml'
+      - '**/*.swift'
+  workflow_dispatch:
+    paths:
+      - '.gitea/workflows/swiftlint.yml'
+      - '.swiftlint.yml'
+      - '**/*.swift'
+
+jobs:
+  SwiftLint:
+    runs-on: linux-lint
+    steps:
+      - uses: actions/checkout@v7
+      - name: SwiftLint
+        run: ~/tools/swift/swiftlint lint Sources

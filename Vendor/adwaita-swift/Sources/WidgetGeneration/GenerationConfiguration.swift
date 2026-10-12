@@ -1,0 +1,436 @@
+//
+//  GenerationConfiguration.swift
+//  Adwaita
+//
+//  Created by david-swift on 14.01.24.
+//
+
+import Foundation
+
+// swiftlint:disable type_body_length file_length
+
+/// The configuration for the generation.
+struct GenerationConfiguration {
+
+    /// The include directory.
+    static let gtkIncludeDir = "$(pkg-config --variable=includedir gtk4)"
+
+    /// The include directory.
+    static let adwIncludeDir = "$(pkg-config --variable=includedir libadwaita-1)"
+
+    /// The directory containing the GIR files.
+    static let gtkGirFilePath = "\(gtkIncludeDir)/../share/gir-1.0/"
+
+    /// The directory containing the GIR files.
+    static let adwGirFilePath = "\(adwIncludeDir)/../share/gir-1.0/"
+
+    /// Exclude properties of buttons.
+    static var excludeButtons: [String] {
+        ["action-target", "related-action"]
+    }
+
+    /// The Gtk GIR file.
+    var gtkGirFilePath = gtkGirFilePath + "Gtk-4.0.gir"
+    /// The Adw GIR file.
+    var adwGirFilePath = adwGirFilePath + "Adw-1.gir"
+
+    /// The folder containing the generated Swift files.
+    var folder = "Sources/Adwaita/View/Generated/"
+
+    /// The Libadwaita widgets.
+    var adwWidgets: [WidgetConfiguration] = [
+        .init(class: "StatusPage", excludeProperties: ["paintable"]),
+        .init(
+            class: "Banner",
+            initializer: "adw_banner_new(title)",
+            requiredProperties: ["title"],
+            excludeProperties: ["button-style"]
+        ),
+        .init(
+            class: "Avatar",
+            initializer: "adw_avatar_new(size.cInt, text, showInitials.cBool)",
+            requiredProperties: ["size", "show-initials"],
+            excludeProperties: ["custom-image"]
+        ),
+        .init(
+            class: "WindowTitle",
+            initializer: "adw_window_title_new(title, subtitle)",
+            requiredProperties: ["title", "subtitle"]
+        ),
+        .init(class: "Bin", cast: true),
+        .init(class: "ButtonContent"),
+        .init(
+            class: "Carousel",
+            dynamicWidget: .init(
+                insert: "adw_carousel_insert",
+                remove: "adw_carousel_remove",
+                getElement: "adw_carousel_get_nth_page(widget, UInt(index).cInt)"
+            ),
+            excludeProperties: ["position", "scroll-params"]
+        ),
+        .init(class: "Clamp", excludeProperties: ["unit"]),
+        .init(class: "PreferencesRow", cast: true),
+        .init(
+            class: "ActionRow",
+            staticWidgets: [
+                .init(name: "suffix", add: "adw_action_row_add_suffix"),
+                .init(name: "prefix", add: "adw_action_row_add_prefix")
+            ],
+            cast: true,
+            lastProperties: ["title", "subtitle"]
+        ),
+        .init(class: "SwitchRow", bindings: [.init(property: "active")]),
+        .init(
+            class: "ComboRow",
+            bindings: [.init(property: "selected")],
+            excludeProperties: [
+                "expression", "factory", "list-factory", "model", "selected-item", "header-factory", "search-match-mode"
+            ],
+            cast: true,
+            internalInitializer: true
+        ),
+        .init(
+            class: "ExpanderRow",
+            bindings: [.init(property: "expanded"), .init(property: "enable-expansion")],
+            staticWidgets: [
+                .init(name: "rows", add: "adw_expander_row_add_row"),
+                .init(name: "suffix", add: "adw_expander_row_add_suffix"),
+                .init(name: "prefix", add: "adw_expander_row_add_prefix")
+            ],
+            cast: true
+        ),
+        .init(
+            class: "EntryRow",
+            staticWidgets: [
+                .init(name: "suffix", add: "adw_entry_row_add_suffix"),
+                .init(name: "prefix", add: "adw_entry_row_add_prefix")
+            ],
+            excludeProperties: ["attributes", "input-hints", "input-purpose"],
+            cast: true,
+            internalInitializer: true
+        ),
+        .init(
+            class: "PasswordEntryRow",
+            excludeProperties: ["attributes", "input-hints", "input-purpose"],
+            cast: true,
+            internalInitializer: true
+        ),
+        .init(
+            class: "SpinRow",
+            initializer: "adw_spin_row_new(nil, climbRate, digits.cInt)",
+            bindings: [.init(property: "value")],
+            requiredProperties: ["climb-rate", "digits"],
+            excludeProperties: ["adjustment", "update-policy"]
+        ),
+        .init(
+            class: "PreferencesGroup",
+            staticWidgets: [.init(name: "child", add: "adw_preferences_group_add")],
+            cast: true,
+            internalInitializer: true
+        ),
+        .init(
+            class: "PreferencesPage",
+            staticWidgets: [
+                .init(name: "child", add: "adw_preferences_page_add")
+            ],
+            excludeProperties: ["banner"],
+            cast: true
+        ),
+        .init(
+            class: "OverlaySplitView",
+            bindings: [.init(property: "show-sidebar")],
+            excludeProperties: ["sidebar-position", "sidebar-width-unit"],
+            internalInitializer: true
+        ),
+        .init(
+            class: "HeaderBar",
+            staticWidgets: [
+                .init(name: "start", add: "adw_header_bar_pack_start"),
+                .init(name: "end", add: "adw_header_bar_pack_end")
+            ],
+            excludeProperties: ["centering-policy"]
+        ),
+        .init(
+            class: "ToolbarView",
+            staticWidgets: [
+                .init(name: "bottom", add: "adw_toolbar_view_add_bottom_bar"),
+                .init(name: "top", add: "adw_toolbar_view_add_top_bar")
+            ]
+        ),
+        .init(class: "ToastOverlay", internalInitializer: true),
+        .init(
+            class: "SplitButton",
+            excludeProperties: ["direction", "popover"],
+            setConditions: ["label": "storage.content[\"child\"] == nil"]
+        ),
+        .init(
+            class: "NavigationView",
+            excludeProperties: ["navigation-stack", "visible-page"],
+            internalInitializer: true
+        ),
+        .init(class: "Spinner"),
+        .init(
+            class: "ToggleGroup",
+            bindings: [.init(property: "active"), .init(property: "active-name"), .init(property: "n-toggles")],
+            excludeProperties: ["toggles"],
+            internalInitializer: true
+        ),
+        .init(
+            class: "BottomSheet",
+            bindings: [.init(property: "open")],
+            internalInitializer: true
+        ),
+        .init(
+            class: "ButtonRow"
+        )
+    ]
+
+    /// The Gtk widgets.
+    var gtkWidgets: [WidgetConfiguration] = [
+        .init(
+            class: "Label",
+            initializer: "gtk_label_new(label)",
+            requiredProperties: ["label"],
+            excludeProperties: [
+                "attributes",
+                "ellipsize",
+                "extra-menu",
+                "justify",
+                "natural-wrap-mode",
+                "tabs",
+                "wrap-mode"
+            ],
+            excludeSignals: ["activate-current-link", "activate-link", "move-cursor"]
+        ),
+        .init(
+            class: "Box",
+            initializer: """
+            gtk_box_new(data.getOrientation(data: orientation).gtkValue, data.getSpacing(data: spacing).cInt)
+            """,
+            staticWidgets: [
+                .init(name: "append", add: "gtk_box_append"),
+                .init(name: "prepend", add: "gtk_box_prepend")
+            ],
+            excludeProperties: ["baseline-position"],
+            cast: true,
+            internalInitializer: true
+        ),
+        .init(class: "LevelBar", excludeProperties: ["mode", "orientation"]),
+        .init(
+            class: "ListBox",
+            dynamicWidget: .init(
+                insert: "gtk_list_box_insert",
+                remove: "gtk_list_box_remove",
+                getElement: "gtk_list_box_get_row_at_index(widget, index.cInt)?.cast()"
+            ),
+            excludeProperties: ["selection-mode", "tab-behavior"]
+        ),
+        .init(class: "ProgressBar", excludeProperties: ["ellipsize", "orientation"], internalInitializer: true),
+        .init(
+            class: "Button",
+            excludeProperties: excludeButtons,
+            cast: true,
+            setConditions: ["label": "storage.content[\"child\"] == nil"],
+            internalInitializer: true
+        ),
+        .init(
+            class: "ToggleButton",
+            bindings: [.init(property: "active")],
+            excludeProperties: ["group"] + excludeButtons,
+            cast: true,
+            setConditions: ["label": "storage.content[\"child\"] == nil"],
+            internalInitializer: true
+        ),
+        .init(
+            class: "LinkButton",
+            initializer: "gtk_link_button_new(uri)",
+            requiredProperties: ["uri"],
+            excludeProperties: excludeButtons,
+            excludeSignals: ["activate-link"],
+            setConditions: ["label": "storage.content[\"child\"] == nil"]
+        ),
+        .init(
+            class: "CheckButton",
+            bindings: [.init(property: "active")],
+            excludeProperties: ["group"] + excludeButtons,
+            cast: true,
+            setConditions: ["label": "storage.content[\"child\"] == nil"]
+        ),
+        .init(
+            class: "Entry",
+            bindings: [.init(property: "text")],
+            excludeProperties: [
+                "activates-default",
+                "attributes",
+                "buffer",
+                "completion",
+                "input-hints",
+                "input-purpose",
+                "primary-icon-gicon",
+                "primary-icon-paintable",
+                "primary-icon-storage-type",
+                "secondary-icon-gicon",
+                "secondary-icon-paintable",
+                "secondary-icon-storage-type",
+                "tabs"
+            ],
+            cast: true,
+            internalInitializer: true
+        ),
+        .init(
+            class: "MenuButton",
+            name: "Menu",
+            bindings: [.init(property: "active")],
+            excludeProperties: ["direction", "popover"] + excludeButtons,
+            setConditions: ["label": "storage.content[\"child\"] == nil"],
+            internalInitializer: true
+        ),
+        .init(
+            class: "CenterBox",
+            excludeProperties: ["baseline-position", "orientation"]
+        ),
+        .init(
+            class: "ScrolledWindow",
+            excludeProperties: [
+                "hadjustment",
+                "vadjustment",
+                "window-placement"
+            ],
+            setters: [
+                """
+                if hscrollbarPolicy != (storage.previousState as? Self)?.hscrollbarPolicy
+                || vscrollbarPolicy != (storage.previousState as? Self)?.vscrollbarPolicy {
+                    gtk_scrolled_window_set_policy(
+                        widget,
+                        (hscrollbarPolicy ?? .automatic).gtkValue,
+                        (vscrollbarPolicy ?? .automatic).gtkValue
+                    )
+                }
+                """
+            ],
+            internalInitializer: true
+        ),
+        .init(class: "Overlay", staticWidgets: [.init(name: "overlay", add: "gtk_overlay_add_overlay")]),
+        .init(class: "Popover", excludeProperties: ["pointing-to", "position"], cast: true),
+        .init(
+            class: "FlowBox",
+            dynamicWidget: .init(
+                insert: "gtk_flow_box_insert",
+                remove: "gtk_flow_box_remove",
+                getElement: "gtk_flow_box_get_child_at_index(widget, index.cInt)?.cast()"
+            ),
+            excludeProperties: ["selection-mode", "orientation"],
+            internalInitializer: true
+        ),
+        .init(
+            class: "SearchEntry",
+            bindings: [.init(property: "text")],
+            excludeProperties: ["input-hints", "input-purpose"]
+        ),
+        .init(class: "SearchBar"),
+        .init(class: "Picture", excludeProperties: ["file", "paintable"]),
+        .init(class: "Image", excludeProperties: ["file", "paintable", "gicon", "icon-size"]),
+        .init(
+            class: "AspectFrame",
+            initializer: "gtk_aspect_frame_new(0.5, 0.5, ratio, 0)",
+            requiredProperties: ["ratio"]
+        ),
+        .init(
+            class: "Separator",
+            initializer: "gtk_separator_new(.GTK_ORIENTATION_VERTICAL)",
+            excludeProperties: ["orientation"]
+        ),
+        .init(class: "Fixed"),
+        .init(
+            class: "DropDown",
+            initializer: "gtk_drop_down_new(gtk_string_list_new(nil), nil)",
+            bindings: [.init(property: "selected")],
+            excludeProperties: [
+                "expression",
+                "factory",
+                "header-factory",
+                "list-factory",
+                "model",
+                "search-match-mode",
+                "selected-item"
+            ],
+            internalInitializer: true
+        ),
+        .init(
+            class: "Viewport",
+            initializer: "gtk_viewport_new(nil, nil)",
+            excludeProperties: [
+                "hadjustment",
+                "vadjustment"
+            ]
+        ),
+        .init(
+            class: "PopoverMenu",
+            initializer: "gtk_popover_menu_new_from_model(nil)",
+            excludeProperties: ["flags", "pointing-to", "position"]
+        )
+    ]
+
+    /// The unshortening map.
+    var unshorteningMap = [
+        "char": "character",
+        "str": "string"
+    ]
+
+    /// Replacements for C types.
+    var cTypeReplacements = [
+        "const char*": "String",
+        "char*": "String",
+        "gchar*": "String",
+        "gboolean": "Bool",
+        "gdouble": "Double",
+        "guint": "UInt",
+        "gint": "Int",
+        "gfloat": "Float",
+        "double": "Double",
+        "GIcon*": "OpaquePointer",
+        "GdkPixbuf*": "OpaquePointer",
+        "GdkPaintable*": "OpaquePointer",
+        "NavigationPage": "NavigationPage",
+        "ContentFit": "ContentFit",
+        "PolicyType": "ScrollbarVisibility",
+        "ToolbarStyle": "ToolbarStyle",
+        "ScrollablePolicy": "ScrollablePolicy",
+        "Orientation": "Orientation"
+    ]
+
+    /// Modifications for converting a Swift into a C type.
+    var cTypeProperties = [
+        "Bool": "cBool",
+        "Int": "cInt",
+        "UInt": "cInt",
+        "ContentFit": "gtkValue",
+        "ScrollbarVisibility": "gtkValue",
+        "ToolbarStyle": "gtkValue",
+        "ScrollablePolicy": "gtkValue",
+        "Orientation": "gtkValue"
+    ]
+
+    /// The SignalData.HandlerType replacement for a signal type.
+    var signalTypeReplacements = [
+        "": "noArgs",
+        "gpointer": "oneArg",
+        "gpointer, gpointer": "twoArgs",
+        "guint": "guint"
+    ]
+
+    /// Default values for modifiers with a certain type.
+    var defaultModifierValues = [
+        "Bool?": "true"
+    ]
+
+    /// Modifications for converting a C into a Swift type.
+    var getterTypeConversions: [String: (String) -> String] = [
+        "gboolean": { "\($0) != 0" },
+        "guint": { "UInt(\($0))" },
+        "utf8": { "String(cString: \($0))" }
+    ]
+
+}
+
+// swiftlint:enable type_body_length file_length

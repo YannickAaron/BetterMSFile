@@ -51,7 +51,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends libadwaita-1-dev libgtk-4-dev libsqlite3-dev pkg-config patchelf
-      # Reuse dependency clones: adwaita-swift and its packages live on Codeberg, which has outages.
+      # Reuse dependency clones between runs (faster, fewer network fetches).
       - name: Cache Swift packages
         uses: actions/cache@v4
         with:

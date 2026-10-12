@@ -1,0 +1,5 @@
+---
+Name: CAdw
+Tags:
+- Name: GdkDragAction
+  EnumExtensibility: closed

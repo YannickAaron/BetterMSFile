@@ -34,6 +34,7 @@ BetterMSFile/
 └── Config.swift   # Azure AD credentials (not committed)
 Linux/Sources/     # Linux app: adwaita-swift UI, OAuth+PKCE AuthService, FolderBrowser, CLI entry
 Package.swift      # SwiftPM manifest for the Linux build (lists the shared files it compiles)
+Vendor/            # adwaita-swift and its packages, vendored (only their Package.swift files are edited)
 design/            # Icon source + design specs
 docs/              # GitHub Pages website
 scripts/           # release.sh (macOS), install-linux.sh (Linux), ExportOptions.plist, DMG background
@@ -121,7 +122,7 @@ The script:
 ## Dependencies
 
 - **MSAL** (Microsoft Authentication Library) — via Swift Package Manager (macOS)
-- **adwaita-swift** (pinned commit) and **swift-crypto** — via `Package.swift` (Linux)
+- **adwaita-swift** + meta, meta-sqlite, levenshtein-transformations — vendored in `Vendor/` (upstream on Codeberg had outages; see `Vendor/README.md` for revisions and how to update). **swift-crypto** via `Package.swift` (Linux)
 
 ## Common Pitfalls
 

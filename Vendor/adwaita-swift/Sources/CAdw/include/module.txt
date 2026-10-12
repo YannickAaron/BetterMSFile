@@ -1,0 +1,4 @@
+module CAdw {
+	header "adwshim.h"
+	export *
+}

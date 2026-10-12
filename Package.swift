@@ -11,8 +11,8 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-crypto.git", "3.0.0"..<"5.0.0"),
         // GNOME UI with a SwiftUI-like API. Needs GTK >= 4.20 / libadwaita >= 1.8 (Ubuntu 26.04, Fedora 43, Flatpak GNOME 49+).
-        // ponytail: pinned commit; upstream only tags rarely and depends on its own branches.
-        .package(url: "https://git.aparoksha.dev/aparoksha/adwaita-swift", revision: "af5598fbd6f2425841f426ad388d7a7edd6c90e6"),
+        // Vendored (see Vendor/README.md): upstream lives on Codeberg, whose outages broke builds.
+        .package(path: "Vendor/adwaita-swift"),
     ],
     targets: [
         .executableTarget(

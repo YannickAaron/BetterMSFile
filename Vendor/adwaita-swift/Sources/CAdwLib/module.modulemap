@@ -1,0 +1,6 @@
+module CAdwLib [system] {
+	header "shim.h"
+	link "adwaita-1"
+	link "gtk-4"
+	export *
+}

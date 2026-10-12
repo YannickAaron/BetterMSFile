@@ -1,0 +1,127 @@
+//
+//  State.swift
+//  Meta
+//
+//  Created by david-swift on 26.05.24.
+//
+
+import Foundation
+
+/// A property wrapper for properties in a view that should be stored throughout view updates.
+@propertyWrapper
+public struct State<Value>: StateProtocol {
+
+    /// Access the stored value. This updates the views when being changed.
+    public var wrappedValue: Value {
+        get {
+            rawValue
+        }
+        nonmutating set {
+            rawValue = newValue
+            if !blockUpdates {
+                content.update = true
+                content.storage?.stateManager?.updateViews(force: forceUpdates)
+            }
+            writeValue?(newValue)
+        }
+    }
+
+    /// Get the value as a binding using the `$` prefix.
+    public var projectedValue: Binding<Value> {
+        .init {
+            wrappedValue
+        } set: { newValue in
+            self.wrappedValue = newValue
+        }
+    }
+
+    /// Get and set the value without updating the views.
+    public var rawValue: Value {
+        get {
+            guard let value = content.value as? Value else {
+                return initialValue()
+            }
+            return value
+        }
+        nonmutating set {
+            content.value = newValue
+        }
+    }
+
+    /// Whether to force update the views when the value changes.
+    var forceUpdates = false
+
+    /// Whether to block updates.
+    var blockUpdates = false
+
+    /// The closure for initializing the state property's value.
+    var getInitialValue: () -> Value
+
+    /// Perform additional operations when the value changes.
+    var writeValue: ((Value) -> Void)?
+
+    /// The content.
+    let content: StateContent = .init()
+
+    /// Initialize a property representing a state in the view with an autoclosure.
+    /// - Parameters:
+    ///     - wrappedValue: The wrapped value.
+    ///     - forceUpdates: Whether to force update all available views when the property gets modified.
+    public init(wrappedValue: @autoclosure @escaping () -> Value, forceUpdates: Bool = false) {
+        getInitialValue = wrappedValue
+        self.forceUpdates = forceUpdates
+    }
+
+    /// Initialize a property representing a state in the view with an autoclosure.
+    /// - Parameters:
+    ///     - wrappedValue: The wrapped value.
+    ///     - blockUpdates: Whether updates to this state value should not update the UI.
+    ///
+    /// This can be useful for storing data and reading this data on special occasions, e.g. on startup.
+    public init(wrappedValue: @autoclosure @escaping () -> Value, blockUpdates: Bool) {
+        getInitialValue = wrappedValue
+        self.blockUpdates = blockUpdates
+    }
+
+    /// Initialize a property representing a state in the view with an explicit closure.
+    /// - Parameters:
+    ///     - wrappedValue: Get the wrapped value.
+    ///     - writeValue: Perform additional operations when the value changes.
+    ///     - forceUpdates: Whether to force update all available views when the property gets modified.
+    ///     - blockUpdates: Whether updates to this state value should not update the UI.
+    ///
+    /// This initializer can be used e.g. to get data from the disk.
+    public init(
+        wrappedValue: @escaping () -> Value,
+        writeValue: ((Value) -> Void)? = nil,
+        forceUpdates: Bool = false,
+        blockUpdates: Bool = false
+    ) {
+        getInitialValue = wrappedValue
+        self.writeValue = writeValue
+        self.forceUpdates = forceUpdates
+        self.blockUpdates = blockUpdates
+    }
+
+    /// Get the initial value.
+    /// - Returns: The initial value.
+    func initialValue() -> Value {
+        let initialValue = getInitialValue()
+        let storage = StateContent.Storage(value: initialValue)
+        if var model = initialValue as? Model {
+            model.model = .init(storage: storage, force: forceUpdates)
+            model.setup()
+            content.storage = storage
+            content.value = model
+        } else {
+            content.storage = storage
+        }
+        return initialValue
+    }
+
+    /// Set the storage up.
+    func setup() {
+        _ = initialValue()
+    }
+
+}

@@ -1,14 +1,6 @@
 {
-  "originHash" : "5f079b52f8160066354cee6b6a640e7dfe6bd3948f677d6ffe3145372c9b95bb",
+  "originHash" : "9c402ed44dcc6b68d02ac6b8259d87448fc005a0c316928fe5743f954ecc61cd",
   "pins" : [
-    {
-      "identity" : "adwaita-swift",
-      "kind" : "remoteSourceControl",
-      "location" : "https://git.aparoksha.dev/aparoksha/adwaita-swift",
-      "state" : {
-        "revision" : "af5598fbd6f2425841f426ad388d7a7edd6c90e6"
-      }
-    },
     {
       "identity" : "csqlite",
       "kind" : "remoteSourceControl",
@@ -16,33 +8,6 @@
       "state" : {
         "revision" : "8ad83035460a3d1029a2c5a0cca4f980297a9ca2",
         "version" : "3.53.3"
-      }
-    },
-    {
-      "identity" : "levenshtein-transformations",
-      "kind" : "remoteSourceControl",
-      "location" : "https://git.aparoksha.dev/aparoksha/levenshtein-transformations",
-      "state" : {
-        "branch" : "main",
-        "revision" : "06577a2c4c6419ed859e34a8fb7be87a3b8975da"
-      }
-    },
-    {
-      "identity" : "meta",
-      "kind" : "remoteSourceControl",
-      "location" : "https://git.aparoksha.dev/aparoksha/meta",
-      "state" : {
-        "branch" : "main",
-        "revision" : "4d274f3cd042cbc3cb2098838093c65097935349"
-      }
-    },
-    {
-      "identity" : "meta-sqlite",
-      "kind" : "remoteSourceControl",
-      "location" : "https://git.aparoksha.dev/aparoksha/meta-sqlite",
-      "state" : {
-        "branch" : "main",
-        "revision" : "1009b02b69c7c4b68c3d521d8215ea9f58c57ef0"
       }
     },
     {
