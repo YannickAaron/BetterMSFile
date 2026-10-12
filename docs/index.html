@@ -123,6 +123,10 @@ body {
 .download-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(26,87,227,0.6); }
 .download-btn svg { width: 22px; height: 22px; fill: white; }
 .hero-req { margin-top: 14px; font-size: 13px; color: rgba(255,255,255,0.38); }
+.hero-req a { color: inherit; text-decoration: underline; }
+.download-row { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.download-btn.secondary { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.28); box-shadow: none; }
+.download-btn.secondary:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
 
 /* Hero floating window */
 .hero-mockup-wrap {
@@ -343,6 +347,8 @@ body {
 .cta .download-btn { background: white; color: var(--blue-mid); box-shadow: 0 4px 24px rgba(0,0,0,0.15); }
 .cta .download-btn:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
 .cta .download-btn svg { fill: var(--blue-mid); }
+.cta .download-btn.secondary { background: transparent; color: white; border: 1px solid rgba(255,255,255,0.5); box-shadow: none; }
+.cta .download-btn.secondary svg { fill: white; }
 
 footer { text-align: center; padding: 28px 24px; font-size: 13px; color: var(--gray-400); background: var(--gray-900); display: flex; align-items: center; justify-content: center; gap: 24px; flex-wrap: wrap; }
 footer a { color: var(--blue-accent); text-decoration: none; }
@@ -453,12 +459,18 @@ footer a:hover { text-decoration: underline; }
     <p class="tagline">Your Microsoft 365 files. One native app. Always online.</p>
 
     <div class="hero-cta">
-      <a href="https://github.com/YannickAaron/BetterMSFile/releases/download/v1.8/BetterMSFile-v1.8.dmg" class="download-btn" id="dlbtn-hero" download>
+      <div class="download-row">
+        <a href="https://github.com/YannickAaron/BetterMSFile/releases/download/v1.8/BetterMSFile-v1.8.dmg" class="download-btn mac-btn" id="dlbtn-hero" download>
         <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-27.1-46.9-42.8-83.7-47.4-35.4-4.5-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184 4 273.5c0 26.2 4.8 53.3 14.4 81.2 12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-62.1 24-72.5-24 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
         Download for macOS
-      </a>
+        </a>
+        <a href="https://github.com/YannickAaron/BetterMSFile/releases" class="download-btn secondary linux-btn" id="dlbtn-hero-linux">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3a1 1 0 0 1 1 1v9.59l3.3-3.3a1 1 0 1 1 1.4 1.42l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.42L11 13.59V4a1 1 0 0 1 1-1zM5 19a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1z"/></svg>
+          Download for Linux
+        </a>
+      </div>
       <p class="hero-req">Free &amp; Open Source &middot; macOS 26.2+ &middot; Microsoft 365 work or school account</p>
-      <p class="hero-req"><a href="https://github.com/YannickAaron/BetterMSFile#linux-beta" style="color:inherit;text-decoration:underline">Linux (beta): download &amp; install</a></p>
+      <p class="hero-req">Linux (beta): Ubuntu 26.04 / Fedora 43+ &middot; <a href="https://github.com/YannickAaron/BetterMSFile/releases">ARM build</a> &middot; <a href="https://github.com/YannickAaron/BetterMSFile#linux-beta">install guide</a></p>
     </div>
 
     <!-- Floating hero app preview -->
@@ -941,11 +953,16 @@ footer a:hover { text-decoration: underline; }
     <h2 class="animate-in">Stop searching. Start finding.</h2>
     <p class="animate-in d1">Free and open source. Download now and take control of your Microsoft 365 files.</p>
     <div class="animate-in d2">
-      <a href="https://github.com/YannickAaron/BetterMSFile/releases/download/v1.8/BetterMSFile-v1.8.dmg" class="download-btn" id="dlbtn-cta" download>
+      <div class="download-row">
+      <a href="https://github.com/YannickAaron/BetterMSFile/releases/download/v1.8/BetterMSFile-v1.8.dmg" class="download-btn mac-btn" id="dlbtn-cta" download>
         <svg viewBox="0 0 384 512" xmlns="http://www.w3.org/2000/svg"><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-27.1-46.9-42.8-83.7-47.4-35.4-4.5-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184 4 273.5c0 26.2 4.8 53.3 14.4 81.2 12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-62.1 24-72.5-24 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
         Download for macOS
       </a>
-      <p style="margin-top:16px;opacity:.85"><a href="https://github.com/YannickAaron/BetterMSFile#linux-beta" style="color:inherit;text-decoration:underline">Linux (beta): download &amp; install</a></p>
+      <a href="https://github.com/YannickAaron/BetterMSFile/releases" class="download-btn secondary linux-btn" id="dlbtn-cta-linux">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3a1 1 0 0 1 1 1v9.59l3.3-3.3a1 1 0 1 1 1.4 1.42l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.42L11 13.59V4a1 1 0 0 1 1-1zM5 19a1 1 0 0 1 1-1h12a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1z"/></svg>
+        Download for Linux
+      </a>
+      </div>
     </div>
   </div>
 </section>
@@ -970,13 +987,30 @@ fetch('https://api.github.com/repos/YannickAaron/BetterMSFile/releases/latest')
   .then(data => {
     const dmg = data.assets && data.assets.find(a => a.name.endsWith('.dmg'));
     if (dmg) {
-      document.querySelectorAll('.download-btn').forEach(btn => {
+      document.querySelectorAll('.mac-btn').forEach(btn => {
         btn.href = dmg.browser_download_url;
         btn.setAttribute('download', dmg.name);
       });
     }
   })
   .catch(() => { /* silently fall back to hardcoded v1.8 URL */ });
+
+// Linux button: newest release with a Linux tarball (Linux builds may be pre-releases, which /latest skips).
+fetch('https://api.github.com/repos/YannickAaron/BetterMSFile/releases?per_page=10')
+  .then(r => r.json())
+  .then(releases => {
+    for (const rel of releases) {
+      const tar = (rel.assets || []).find(a => a.name.endsWith('-linux-x86_64.tar.gz'));
+      if (tar) {
+        document.querySelectorAll('.linux-btn').forEach(btn => {
+          btn.href = tar.browser_download_url;
+          btn.setAttribute('download', tar.name);
+        });
+        return;
+      }
+    }
+  })
+  .catch(() => { /* falls back to the releases page */ });
 </script>
 </body>
 </html>
