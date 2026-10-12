@@ -73,6 +73,18 @@ BetterMSFile/
 └── Extensions/       # Utility extensions
 ```
 
+## Use with AI agents (MCP)
+
+BetterMSFile can give AI agents (Claude Desktop, Claude Code, Cursor and other MCP clients) access to your Microsoft 365 files.
+
+1. Sign in to BetterMSFile and move it to `/Applications`.
+2. Open **Settings → Agents** (⌘,) and turn on **Let AI agents access my files**.
+3. Click **Add to Claude** (Claude Desktop), **Copy Command** (Claude Code) or **Copy JSON** (other apps).
+
+Agents can list, search, read (text, PDF, Word, Excel, PowerPoint) and download files. Uploading, renaming, moving, creating folders and deleting stay off until you turn on **Allow agents to make changes**. Deleted items go to the Microsoft 365 recycle bin.
+
+Under the hood, the app binary runs as a stdio MCP server with `BetterMSFile --mcp`, reusing your signed-in session. It never opens a sign-in window. If your session expires, open the app and sign in again.
+
 ## Keyboard Shortcuts
 
 | Shortcut | Action |

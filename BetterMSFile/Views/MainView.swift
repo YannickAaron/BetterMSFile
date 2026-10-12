@@ -121,6 +121,7 @@ struct MainView: View {
                     Menu {
                         Text(appState.userEmail ?? "")
                         Divider()
+                        SettingsLink { Text("Settings…") }
                         Button("Sign Out") {
                             Task { await appState.signOut() }
                         }

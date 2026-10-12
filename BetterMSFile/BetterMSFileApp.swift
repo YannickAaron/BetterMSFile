@@ -1,7 +1,6 @@
 import SwiftUI
 import SwiftData
 
-@main
 struct BetterMSFileApp: App {
     @State private var appState = AppState()
     @Environment(\.openWindow) private var openWindow
@@ -61,6 +60,10 @@ struct BetterMSFileApp: App {
             }
         }
 
+        Settings {
+            AgentSettingsView(appState: appState)
+        }
+
         // Menu bar extra for quick access
         MenuBarExtra("BetterMSFile", systemImage: "externaldrive.connected.to.line.below") {
             if appState.authService.isAuthenticated {
@@ -79,6 +82,7 @@ struct BetterMSFileApp: App {
                         NotificationCenter.default.post(name: .activateSearch, object: nil)
                     }
                 }
+                SettingsLink { Text("Settings…") }
                 Divider()
                 Button("Quit") {
                     NSApplication.shared.terminate(nil)

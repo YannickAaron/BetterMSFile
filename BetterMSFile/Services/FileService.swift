@@ -153,6 +153,73 @@ final class FileService {
         )
     }
 
+    /// Upload a whole file: simple PUT under 4MB, otherwise a resumable session in 5MB chunks.
+    /// `onProgress` receives the bytes uploaded so far (large files only).
+    func upload(
+        data: Data,
+        filename: String,
+        driveId: String,
+        parentId: String,
+        onProgress: (Int64) -> Void = { _ in }
+    ) async throws -> GraphDriveItem? {
+        let fileSize = Int64(data.count)
+        if fileSize < 4 * 1024 * 1024 {
+            return try await uploadSmall(
+                data: data,
+                filename: filename,
+                driveId: driveId,
+                parentId: parentId,
+                contentType: Self.mimeType(forExtension: (filename as NSString).pathExtension)
+            )
+        }
+
+        let session = try await createUploadSession(driveId: driveId, parentId: parentId, filename: filename)
+        guard let sessionURL = URL(string: session.uploadUrl) else {
+            throw GraphError.invalidResponse
+        }
+
+        let chunkSize = 5 * 1024 * 1024
+        var offset = 0
+        var responseData = Data()
+        while offset < data.count {
+            let end = min(offset + chunkSize, data.count)
+            responseData = try await uploadChunk(
+                sessionURL: sessionURL,
+                data: Data(data[offset..<end]),
+                range: "\(offset)-\(end - 1)",
+                totalSize: fileSize
+            )
+            offset = end
+            onProgress(Int64(offset))
+        }
+        // Final chunk returns the completed item
+        return try? JSONDecoder().decode(GraphDriveItem.self, from: responseData)
+    }
+
+    /// Determine MIME type from a file extension.
+    static func mimeType(forExtension ext: String) -> String {
+        let mimeTypes: [String: String] = [
+            "pdf": "application/pdf",
+            "doc": "application/msword",
+            "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "xls": "application/vnd.ms-excel",
+            "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "ppt": "application/vnd.ms-powerpoint",
+            "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "txt": "text/plain",
+            "csv": "text/csv",
+            "png": "image/png",
+            "jpg": "image/jpeg",
+            "jpeg": "image/jpeg",
+            "gif": "image/gif",
+            "svg": "image/svg+xml",
+            "zip": "application/zip",
+            "mp4": "video/mp4",
+            "mp3": "audio/mpeg",
+        ]
+        return mimeTypes[ext.lowercased()] ?? "application/octet-stream"
+    }
+
     /// Rename a file or folder via PATCH.
     func renameItem(driveId: String, itemId: String, newName: String) async throws -> GraphDriveItem {
         let url = GraphEndpoints.driveItem(driveId: driveId, itemId: itemId)

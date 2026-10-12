@@ -348,6 +348,24 @@ footer { text-align: center; padding: 28px 24px; font-size: 13px; color: var(--g
 footer a { color: var(--blue-accent); text-decoration: none; }
 footer a:hover { text-decoration: underline; }
 
+/* ── AI AGENTS (MCP) ── */
+.agents { padding: 100px 24px; }
+.agents .step { margin-bottom: 0; }
+.agents-list { list-style: none; margin: 24px 0; display: flex; flex-direction: column; gap: 14px; }
+.agents-list li { display: flex; gap: 14px; align-items: flex-start; font-size: 16px; color: var(--gray-700); line-height: 1.5; }
+.agents-list .step-num { width: 26px; height: 26px; font-size: 13px; margin: 0; flex-shrink: 0; }
+.agents-perms { display: flex; flex-wrap: wrap; gap: 8px; }
+.agents-perm { padding: 5px 12px; border-radius: 100px; font-size: 13px; font-weight: 500; border: 1px solid; }
+.agents-perm.read { background: #f0fdf4; border-color: #86efac; color: #15803d; }
+.agents-perm.write { background: #fff7ed; border-color: #fdba74; color: #c2410c; }
+.agents-note { font-size: 14px; color: var(--gray-600); margin-top: 16px; }
+.chat { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.chat-user { align-self: flex-end; max-width: 80%; background: var(--blue-mid); color: white; padding: 9px 14px; border-radius: 16px 16px 4px 16px; font-size: 13.5px; }
+.chat-tool { align-self: flex-start; max-width: 100%; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--gray-600); background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 8px; padding: 6px 10px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; overflow-wrap: anywhere; }
+.chat-tool .ok { color: #16a34a; font-weight: 700; }
+.chat-bot { align-self: flex-start; max-width: 88%; background: var(--gray-50); border: 1px solid var(--gray-200); color: var(--gray-800); padding: 10px 14px; border-radius: 16px 16px 16px 4px; font-size: 13.5px; line-height: 1.55; }
+.chat-bot b { color: var(--gray-900); }
+
 /* ── RESPONSIVE ── */
 @media (max-width: 960px) {
   .step { grid-template-columns: 1fr; gap: 36px; }
@@ -832,6 +850,48 @@ footer a:hover { text-decoration: underline; }
       <p class="mockup-label">Multi-tab browsing — compare folders side by side</p>
     </div>
 
+  </div>
+</section>
+
+<!-- ════════════ AI AGENTS ════════════ -->
+<section class="agents" id="agents">
+  <div class="section-header animate-in">
+    <div class="section-label">New · Works with AI agents</div>
+    <h2>Let your AI assistant find your files</h2>
+    <p>BetterMSFile includes a built-in MCP server. Claude, Cursor and other AI apps can search, read and organize your Microsoft 365 files. You stay in control.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-text animate-in">
+      <h3>Connected in three clicks</h3>
+      <ol class="agents-list">
+        <li><span class="step-num">1</span><span>Sign in to BetterMSFile, then open <b>Settings → Agents</b> (<kbd style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;padding:1px 6px;font-size:13px;">⌘,</kbd>).</span></li>
+        <li><span class="step-num">2</span><span>Turn on <b>Let AI agents access my files</b>.</span></li>
+        <li><span class="step-num">3</span><span>Click <b>Add to Claude</b>, or copy the command for Claude Code, or copy the JSON for Cursor, VS Code and other apps.</span></li>
+      </ol>
+      <div class="agents-perms">
+        <span class="agents-perm read">Browse &amp; search</span>
+        <span class="agents-perm read">Read PDF, Word, Excel, PowerPoint</span>
+        <span class="agents-perm read">Download</span>
+        <span class="agents-perm write">Upload, rename, move, delete (opt-in)</span>
+      </div>
+      <p class="agents-note">Read-only by default. Agents use your existing sign-in, with no extra passwords or API keys. Deleted items go to the Microsoft 365 recycle bin.</p>
+    </div>
+    <div class="step-mockup animate-in d2">
+      <div class="aw">
+        <div class="aw-bar">
+          <span class="tl tl-r"></span><span class="tl tl-y"></span><span class="tl tl-g"></span>
+          <span class="aw-bar-center" style="color:#999;font-size:12px;">Claude</span>
+          <span class="aw-bar-spacer"></span>
+        </div>
+        <div class="chat">
+          <div class="chat-user">Find the latest budget spreadsheet and summarize it</div>
+          <div class="chat-tool"><span class="ok">✓</span> bettermsfile · search "budget"</div>
+          <div class="chat-tool"><span class="ok">✓</span> bettermsfile · read_file Budget 2025.xlsx</div>
+          <div class="chat-bot"><b>Budget 2025.xlsx</b> (Marketing › Finance, edited 2 days ago):<br>Total spend is €1.24M, 6% under plan. Events are over budget by €38k; tooling and contractors are under.</div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 

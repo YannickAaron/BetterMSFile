@@ -585,7 +585,7 @@ struct FileListView: View {
             var destinationURL = downloadsDir.appendingPathComponent(file.name)
 
             // Resolve file name collisions
-            destinationURL = uniqueFileURL(destinationURL)
+            destinationURL = destinationURL.uniqueFileURL()
 
             let tempURL = try await viewModel.downloadFile(driveId: file.driveId, itemId: file.itemId)
             try FileManager.default.moveItem(at: tempURL, to: destinationURL)
@@ -595,25 +595,6 @@ struct FileListView: View {
         } catch {
             operationError = "Download failed: \(error.localizedDescription)"
         }
-    }
-
-    /// Generate a unique file path by appending a counter if the file already exists.
-    private func uniqueFileURL(_ url: URL) -> URL {
-        guard FileManager.default.fileExists(atPath: url.path) else { return url }
-
-        let directory = url.deletingLastPathComponent()
-        let stem = url.deletingPathExtension().lastPathComponent
-        let ext = url.pathExtension
-
-        var counter = 1
-        var candidate: URL
-        repeat {
-            let newName = ext.isEmpty ? "\(stem) (\(counter))" : "\(stem) (\(counter)).\(ext)"
-            candidate = directory.appendingPathComponent(newName)
-            counter += 1
-        } while FileManager.default.fileExists(atPath: candidate.path)
-
-        return candidate
     }
 
     // MARK: - Upload

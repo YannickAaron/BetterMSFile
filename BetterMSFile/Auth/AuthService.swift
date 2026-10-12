@@ -7,6 +7,9 @@ final class AuthService {
     private(set) var accessToken: String?
     private(set) var isAuthenticated = false
 
+    /// False in the headless MCP process: a refresh failure must not pop a browser sign-in.
+    var allowsInteractiveSignIn = true
+
     private var application: MSALPublicClientApplication?
 
     init() {
@@ -108,6 +111,11 @@ final class AuthService {
             return result.accessToken
         } catch {
             // Silent token refresh failed (e.g., refresh token expired)
+            guard allowsInteractiveSignIn else {
+                self.isAuthenticated = false
+                self.accessToken = nil
+                throw AuthError.notSignedIn
+            }
             // Try interactive sign-in as last resort
             do {
                 try await signIn()
