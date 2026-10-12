@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
-# Build and install BetterMSFile for the current Linux user (no root needed).
+# Install BetterMSFile for the current Linux user (no root needed).
 #
-#   ./scripts/install-linux.sh              build (release) and install to ~/.local
-#   ./scripts/install-linux.sh --uninstall  remove binary, launcher and icon
+# From a release download (BetterMSFile-vX-linux-<arch>.tar.gz, contains this script as install.sh):
+#   ./install.sh
+# From a source checkout (builds first; needs Swift 6.3+ and BetterMSFile/Config.swift):
+#   ./scripts/install-linux.sh
+# Remove:
+#   ./install.sh --uninstall   (or ./scripts/install-linux.sh --uninstall)
 #
 # Installs:
-#   ~/.local/bin/bettermsfile                                        the app, CLI and MCP server
+#   ~/.local/lib/bettermsfile/                                       binary (+ bundled Swift runtime for releases)
+#   ~/.local/bin/bettermsfile                                        symlink: app, CLI and MCP server
 #   ~/.local/share/applications/com.empa.BetterMSFile.desktop        app launcher
 #   ~/.local/share/icons/hicolor/scalable/apps/com.empa.BetterMSFile.svg
 # The sign-in URL handler (bettermsfile-auth.desktop) is registered by the app on first sign-in.
@@ -13,10 +18,11 @@ set -euo pipefail
 
 APP_ID="com.empa.BetterMSFile"
 PREFIX="${PREFIX:-$HOME/.local}"
+LIBDIR="$PREFIX/lib/bettermsfile"
 BIN="$PREFIX/bin/bettermsfile"
 DESKTOP="$PREFIX/share/applications/$APP_ID.desktop"
 ICON="$PREFIX/share/icons/hicolor/scalable/apps/$APP_ID.svg"
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+HERE="$(cd "$(dirname "$0")" && pwd)"
 
 refresh_caches() {
     update-desktop-database "$PREFIX/share/applications" 2>/dev/null || true
@@ -25,36 +31,56 @@ refresh_caches() {
 }
 
 if [[ "${1:-}" == "--uninstall" ]]; then
+    rm -rf "$LIBDIR"
     rm -f "$BIN" "$DESKTOP" "$ICON" "$PREFIX/share/applications/bettermsfile-auth.desktop"
     refresh_caches
     echo "Uninstalled. Your sign-in stays in the keyring until you run 'bettermsfile --logout' (before uninstalling)."
     exit 0
 fi
 
-# --- Checks -------------------------------------------------------------------
-
 fail() { echo "error: $*" >&2; exit 1; }
+[[ "$(uname -s)" == "Linux" ]] || fail "this script is for Linux. On macOS, download the DMG or open BetterMSFile.xcodeproj."
 
-[[ "$(uname -s)" == "Linux" ]] || fail "this script is for Linux. On macOS, open BetterMSFile.xcodeproj or use scripts/release.sh."
-command -v swift >/dev/null || fail "Swift 6.3+ not found. Install it from https://www.swift.org/install/linux/"
-[[ -f "$ROOT/BetterMSFile/Config.swift" ]] \
-    || fail "BetterMSFile/Config.swift is missing. Copy BetterMSFile/Config.swift.example and fill in your Azure app values."
+DEPS_HINT="  Ubuntu/Debian: sudo apt install libadwaita-1-0 libsecret-tools poppler-utils
+  Fedora:        sudo dnf install libadwaita libsecret poppler-utils"
 
-if ! pkg-config --atleast-version=1.8 libadwaita-1 2>/dev/null || ! pkg-config --atleast-version=4.20 gtk4 2>/dev/null; then
-    fail "needs libadwaita >= 1.8 and GTK >= 4.20 development files (Ubuntu 26.04 / Fedora 43 or newer).
+if [[ -x "$HERE/bettermsfile" ]]; then
+    # --- Prebuilt release tarball --------------------------------------------------
+    SRC_DIR="$HERE"
+    ICON_SRC="$HERE/icon.svg"
+    if ldd "$HERE/bettermsfile" | grep -q "not found"; then
+        ldd "$HERE/bettermsfile" | grep "not found" >&2
+        fail "missing system libraries. BetterMSFile needs GTK >= 4.20 and libadwaita >= 1.8 (Ubuntu 26.04, Fedora 43 or newer).
+$DEPS_HINT"
+    fi
+else
+    # --- Source checkout: build ----------------------------------------------------
+    ROOT="$(cd "$HERE/.." && pwd)"
+    command -v swift >/dev/null || fail "Swift 6.3+ not found. Install it from https://www.swift.org/install/linux/ (or download a prebuilt release instead)."
+    [[ -f "$ROOT/BetterMSFile/Config.swift" ]] \
+        || fail "BetterMSFile/Config.swift is missing. Copy BetterMSFile/Config.swift.example and fill in your Azure app values."
+    if ! pkg-config --atleast-version=1.8 libadwaita-1 2>/dev/null || ! pkg-config --atleast-version=4.20 gtk4 2>/dev/null; then
+        fail "needs libadwaita >= 1.8 and GTK >= 4.20 development files (Ubuntu 26.04 / Fedora 43 or newer).
   Ubuntu/Debian: sudo apt install libadwaita-1-dev libgtk-4-dev libsqlite3-dev pkg-config libsecret-tools poppler-utils
   Fedora:        sudo dnf install libadwaita-devel gtk4-devel sqlite-devel pkgconf libsecret poppler-utils"
+    fi
+    echo "Building (release)…"
+    swift build -c release --package-path "$ROOT"
+    SRC_DIR="$ROOT/.build/release"
+    ICON_SRC="$ROOT/design/icon.svg"
 fi
+
 command -v secret-tool >/dev/null || echo "warning: 'secret-tool' not found; install libsecret-tools (Ubuntu) or libsecret (Fedora) so sign-in can be saved."
 command -v pdftotext >/dev/null || echo "warning: 'pdftotext' not found; install poppler-utils so AI agents can read PDFs and Office files."
 
-# --- Build & install ------------------------------------------------------------
+# --- Install ---------------------------------------------------------------------
 
-echo "Building (release)…"
-swift build -c release --package-path "$ROOT"
-
-install -Dm755 "$ROOT/.build/release/bettermsfile" "$BIN"
-install -Dm644 "$ROOT/design/icon.svg" "$ICON"
+rm -rf "$LIBDIR" && mkdir -p "$LIBDIR"
+install -m755 "$SRC_DIR/bettermsfile" "$LIBDIR/bettermsfile"
+for lib in "$SRC_DIR"/*.so; do [[ -e "$lib" && "$SRC_DIR" == "$HERE" ]] && install -m644 "$lib" "$LIBDIR/"; done
+mkdir -p "$(dirname "$BIN")"
+ln -sf "$LIBDIR/bettermsfile" "$BIN"
+install -Dm644 "$ICON_SRC" "$ICON"
 mkdir -p "$(dirname "$DESKTOP")"
 cat > "$DESKTOP" <<EOF
 [Desktop Entry]

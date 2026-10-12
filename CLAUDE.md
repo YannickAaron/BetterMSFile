@@ -75,7 +75,11 @@ scripts/           # release.sh (macOS), install-linux.sh (Linux), ExportOptions
 
 ## Releases
 
-**Always use the release script** — never create DMGs or GitHub releases manually.
+**Normal flow: push a tag.** Bump `MARKETING_VERSION`, commit, `git tag v{VERSION} && git push origin v{VERSION}`. `.github/workflows/release.yml` then builds the notarized DMG (via `scripts/release.sh --dmg-only` with an App Store Connect API key), the Linux tarballs (`scripts/package-linux.sh`, x86_64 + aarch64, Swift runtime bundled) and publishes the release with `SHA256SUMS.txt`. Re-run for an existing tag via workflow_dispatch (assets are replaced). Secrets are listed in the workflow header.
+
+Linux tarball name: `BetterMSFile-v{VERSION}-linux-{x86_64|aarch64}.tar.gz` (binary, bundled Swift libs with `$ORIGIN` rpath, `install.sh`, icon).
+
+**Local fallback:** the release script below — never create DMGs or GitHub releases manually.
 
 ```bash
 ./scripts/release.sh                      # build, DMG, tag, GitHub release
@@ -86,6 +90,7 @@ scripts/           # release.sh (macOS), install-linux.sh (Linux), ExportOptions
 
 The script:
 - Reads the version from `MARKETING_VERSION` — bump it in Xcode, commit, then run
+- Signs via the Xcode account, or via `ASC_KEY_PATH`/`ASC_KEY_ID`/`ASC_ISSUER_ID` (API key; also used for notarization) — that's how CI runs it
 - Archives (Release) and exports with Developer ID signing (`scripts/ExportOptions.plist`, team RCX5S5E3D8). Needs that team's account in Xcode → Settings → Accounts
 - Creates a DMG in `build/` with `BetterMSFile.app` + `Applications` symlink + background (`scripts/dmg-background.png`)
 - Refuses a dirty tree or an existing tag; tags, pushes, creates the GitHub release

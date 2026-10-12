@@ -41,7 +41,7 @@ Microsoft's default apps (OneDrive, SharePoint, Teams) scatter files across frag
 - Microsoft 365 work/school account
 - Azure AD app registration with delegated permissions (see [Graph API Scopes](#graph-api-scopes)); the same registration and redirect URI work for both platforms
 - **macOS:** macOS 26.2+ (Xcode to build from source)
-- **Linux:** GTK ≥ 4.20 and libadwaita ≥ 1.8 (Ubuntu 26.04, Fedora 43 or newer), Swift 6.3+, `libsecret-tools` (stores the sign-in in your keyring), `poppler-utils` (PDF/Office text for AI agents)
+- **Linux:** GTK ≥ 4.20 and libadwaita ≥ 1.8 (Ubuntu 26.04, Fedora 43 or newer), `libsecret-tools` (stores the sign-in in your keyring), `poppler-utils` (PDF/Office text for AI agents); Swift 6.3+ only to build from source
 
 ## Install
 
@@ -57,11 +57,20 @@ To build from source:
 4. Open `BetterMSFile.xcodeproj` in Xcode
 5. Build and run
 
-Release: bump `MARKETING_VERSION`, commit, run `./scripts/release.sh` (see CLAUDE.md).
-
 ### Linux (beta)
 
-Linux is built from source for now. The install script builds a release binary and installs it for your user (no root needed), with an app launcher and icon.
+**Prebuilt (recommended).** Download `BetterMSFile-vX-linux-x86_64.tar.gz` (or `-aarch64`) from the [latest release](https://github.com/YannickAaron/BetterMSFile/releases/latest). It includes the Swift runtime, so you don't need Swift.
+
+```bash
+sudo apt install libadwaita-1-0 libsecret-tools poppler-utils    # Ubuntu 26.04 / Debian
+sudo dnf install libadwaita libsecret poppler-utils              # Fedora 43+
+tar xzf BetterMSFile-v*-linux-*.tar.gz
+cd BetterMSFile-v*-linux-*/ && ./install.sh
+```
+
+Start **BetterMSFile** from your app launcher (or run `bettermsfile`) and click **Sign in with Microsoft**. To update, install the new tarball the same way; to remove, run `./install.sh --uninstall`.
+
+**From source.** The same script builds a release binary first when run from a checkout:
 
 1. Install the dependencies:
 
@@ -82,11 +91,21 @@ Linux is built from source for now. The install script builds a release binary a
 
 5. Start **BetterMSFile** from your app launcher (or run `bettermsfile`) and click **Sign in with Microsoft**.
 
-This installs `~/.local/bin/bettermsfile`, a launcher in `~/.local/share/applications` and the icon. Run `./scripts/install-linux.sh` again to update, or `./scripts/install-linux.sh --uninstall` to remove it.
+Both install for your user (no root): the app in `~/.local/lib/bettermsfile`, the `bettermsfile` command in `~/.local/bin`, a launcher in `~/.local/share/applications` and the icon. Run the script again to update, or with `--uninstall` to remove it.
 
 Sign-in uses the same app registration and redirect URI as the Mac app (`msauth.empa.BetterMSFile://auth`). On first sign-in the app registers itself as the handler for that URL scheme, so your browser hands the result straight back — if the browser asks whether to open BetterMSFile, allow it. The refresh token is kept in your desktop keyring (GNOME Keyring / KWallet).
 
 For development: `swift build && .build/debug/bettermsfile`.
+
+## Releases
+
+Bump `MARKETING_VERSION` in Xcode, commit, then push a tag:
+
+```bash
+git tag v1.9 && git push origin v1.9
+```
+
+The [Release workflow](.github/workflows/release.yml) builds the signed and notarized macOS DMG and the Linux tarballs (x86_64 and aarch64), and publishes them with checksums as the GitHub release `v1.9`. It needs these repository secrets: `CONFIG_SWIFT`, `MACOS_CERTIFICATE_P12`, `MACOS_CERTIFICATE_PASSWORD`, `ASC_API_KEY_P8`, `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID` (see the workflow header). `./scripts/release.sh` still works for a local macOS-only release.
 
 ## Architecture
 
@@ -122,7 +141,8 @@ BetterMSFile/
 └── Extensions/       # Utility extensions
 Linux/Sources/        # Linux app: GNOME UI, OAuth sign-in, folder browser, CLI entry point
 Package.swift         # SwiftPM manifest for the Linux build
-scripts/              # release.sh (macOS), install-linux.sh (Linux)
+scripts/              # release.sh (macOS DMG), package-linux.sh + install-linux.sh (Linux)
+.github/workflows/    # Linux CI build, tag-triggered release (DMG + Linux tarballs)
 ```
 
 ## Use with AI agents (MCP)

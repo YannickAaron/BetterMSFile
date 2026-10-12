@@ -18,6 +18,9 @@ set -euo pipefail
 # Notarization needs a one-time keychain profile:
 #   xcrun notarytool store-credentials BetterMSFile-notary \
 #       --apple-id <apple-id> --team-id RCX5S5E3D8 --password <app-specific-password>
+# or an App Store Connect API key in the environment (used by CI, .github/workflows/release.yml):
+#   ASC_KEY_PATH=/path/AuthKey_XXXX.p8 ASC_KEY_ID=XXXX ASC_ISSUER_ID=<uuid>
+# The key also lets xcodebuild fetch the Developer ID provisioning profile without an Xcode login.
 # ──────────────────────────────────────────────────────────────────────
 
 APP_NAME="BetterMSFile"
@@ -46,6 +49,15 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# App Store Connect API key (CI) replaces the Xcode account login and the notary keychain profile.
+AUTH_ARGS=()
+NOTARY_ARGS=(--keychain-profile "$NOTARY_PROFILE")
+if [ -n "${ASC_KEY_PATH:-}" ]; then
+    : "${ASC_KEY_ID:?ASC_KEY_ID must be set with ASC_KEY_PATH}" "${ASC_ISSUER_ID:?ASC_ISSUER_ID must be set with ASC_KEY_PATH}"
+    AUTH_ARGS=(-authenticationKeyPath "$ASC_KEY_PATH" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+    NOTARY_ARGS=(--key "$ASC_KEY_PATH" --key-id "$ASC_KEY_ID" --issuer "$ASC_ISSUER_ID")
+fi
+
 VERSION=$(xcodebuild -project "$PROJECT" -scheme "$APP_NAME" -showBuildSettings 2>/dev/null \
     | awk '/ MARKETING_VERSION =/ && !v {v=$3} END {print v}')
 [ -n "$VERSION" ] || { echo "Error: could not read MARKETING_VERSION."; exit 1; }
@@ -54,8 +66,8 @@ DMG_NAME="${BUILD_DIR}/${APP_NAME}-${TAG}.dmg"
 mkdir -p "$BUILD_DIR"
 
 if [ "$NOTARIZE" = true ]; then
-    xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" &>/dev/null \
-        || { echo "Error: notary profile '$NOTARY_PROFILE' missing. See header of this script."; exit 1; }
+    xcrun notarytool history "${NOTARY_ARGS[@]}" &>/dev/null \
+        || { echo "Error: notary credentials not usable (profile '$NOTARY_PROFILE' or ASC_KEY_*). See header of this script."; exit 1; }
 elif [ "$DMG_ONLY" = false ]; then
     echo "Error: --skip-notarize only allowed with --dmg-only."; exit 1
 fi
@@ -80,9 +92,9 @@ if [ -z "$APP_PATH" ]; then
     echo "==> Building (Release)..."
     rm -rf "${BUILD_DIR}/${APP_NAME}.xcarchive" "${BUILD_DIR}/export"
     xcodebuild -project "$PROJECT" -scheme "$APP_NAME" -configuration Release \
-        -destination "generic/platform=macOS" -allowProvisioningUpdates \
+        -destination "generic/platform=macOS" -allowProvisioningUpdates ${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"} \
         -archivePath "${BUILD_DIR}/${APP_NAME}.xcarchive" -quiet archive
-    xcodebuild -exportArchive -allowProvisioningUpdates \
+    xcodebuild -exportArchive -allowProvisioningUpdates ${AUTH_ARGS[@]+"${AUTH_ARGS[@]}"} \
         -archivePath "${BUILD_DIR}/${APP_NAME}.xcarchive" \
         -exportOptionsPlist "${SCRIPT_DIR}/ExportOptions.plist" \
         -exportPath "${BUILD_DIR}/export" -quiet
@@ -143,7 +155,8 @@ done
 
 # Configure Finder window via AppleScript
 echo "==> Configuring Finder layout..."
-osascript << APPLESCRIPT
+# Cosmetic only: CI runners can refuse Finder automation; the DMG still works without the layout.
+osascript << APPLESCRIPT || echo "    Warning: Finder layout skipped (no Finder automation available)."
 tell application "Finder"
     tell disk "$APP_NAME"
         open
@@ -212,7 +225,7 @@ echo "    ✓ DMG verified: ${APP_NAME}.app + Applications symlink"
 if [ "$NOTARIZE" = true ]; then
     echo "==> Signing & notarizing DMG (takes a few minutes)..."
     codesign --sign "Developer ID Application" --timestamp "$DMG_NAME"
-    xcrun notarytool submit "$DMG_NAME" --keychain-profile "$NOTARY_PROFILE" --wait
+    xcrun notarytool submit "$DMG_NAME" "${NOTARY_ARGS[@]}" --wait
     xcrun stapler staple "$DMG_NAME"
     spctl -a -t open --context context:primary-signature -v "$DMG_NAME"
 fi
