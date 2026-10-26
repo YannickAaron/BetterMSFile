@@ -87,11 +87,18 @@ final class SearchService {
                     from: from,
                     size: 25,
                     queryAlterationOptions: nil,
-                    fields: nil
+                    fields: Self.searchFields
                 )
             ]
         )
     }
+
+    /// Search hits never carry the `folder` facet; folders come back with a `file` facet instead. Naming the
+    /// fields adds `listItem.fields.isContainer`, which tells them apart. The rest is what `toUnifiedFile` reads.
+    private static let searchFields = [
+        "id", "name", "size", "webUrl", "createdDateTime", "lastModifiedDateTime", "lastModifiedBy",
+        "parentReference", "file", "isContainer",
+    ]
 
     /// Escape a user query for safe use in KQL (Keyword Query Language).
     /// Wraps the term in double quotes so special characters are treated as literals.
@@ -160,7 +167,7 @@ struct SearchResource: Codable {
     let lastModifiedDateTime: String?
     let parentReference: SearchParentReference?
     let file: SearchFileInfo?
-    let folder: SearchFolderInfo?
+    let listItem: SearchListItem?
     let lastModifiedBy: SearchIdentitySet?
 
     // Additional fields from search
@@ -168,8 +175,12 @@ struct SearchResource: Codable {
         let mimeType: String?
     }
 
-    struct SearchFolderInfo: Codable {
-        let childCount: Int?
+    struct SearchListItem: Codable {
+        let fields: Fields?
+
+        struct Fields: Codable {
+            let isContainer: Bool?
+        }
     }
 
     struct SearchParentReference: Codable {
@@ -190,6 +201,7 @@ extension SearchHit {
     func toUnifiedFile() -> UnifiedFile? {
         guard let resource, let id = resource.id ?? hitId else { return nil }
         let driveId = resource.parentReference?.driveId ?? ""
+        let isFolder = resource.listItem?.fields?.isContainer == true
 
         let source: FileSource
         if resource.parentReference?.siteId != nil {
@@ -202,9 +214,9 @@ extension SearchHit {
             itemId: id,
             driveId: driveId,
             name: resource.name ?? "Unknown",
-            mimeType: resource.file?.mimeType,
+            mimeType: isFolder ? nil : resource.file?.mimeType,
             size: resource.size ?? 0,
-            isFolder: resource.folder != nil,
+            isFolder: isFolder,
             modifiedAt: resource.lastModifiedDateTime.flatMap(Date.init(graphTimestamp:)) ?? .now,
             createdAt: resource.createdDateTime.flatMap(Date.init(graphTimestamp:)) ?? .now,
             modifiedBy: resource.lastModifiedBy?.user?.displayName,
