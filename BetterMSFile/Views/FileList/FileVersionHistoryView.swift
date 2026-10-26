@@ -84,7 +84,7 @@ struct FileVersionHistoryView: View {
 
                 // Absolute date + "X days ago"
                 if let dateStr = version.lastModifiedDateTime,
-                   let date = parseISO8601(dateStr) {
+                   let date = Date(graphTimestamp: dateStr) {
                     Text(date.formatted(date: .abbreviated, time: .shortened))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -133,7 +133,7 @@ struct FileVersionHistoryView: View {
 
     private func parsedDate(for version: GraphDriveItemVersion) -> Date? {
         guard let dateStr = version.lastModifiedDateTime else { return nil }
-        return parseISO8601(dateStr)
+        return Date(graphTimestamp: dateStr)
     }
 
     private func relativeTimeLabel(for date: Date) -> String {
@@ -158,14 +158,6 @@ struct FileVersionHistoryView: View {
         default:
             return "just now"
         }
-    }
-
-    private func parseISO8601(_ string: String) -> Date? {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: string) { return date }
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.date(from: string)
     }
 
     // MARK: - Load & Download

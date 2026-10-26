@@ -281,12 +281,6 @@ private struct MoveItemRequest: Encodable {
 
 // MARK: - Mapping
 
-private let iso8601Formatter: ISO8601DateFormatter = {
-    let formatter = ISO8601DateFormatter()
-    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    return formatter
-}()
-
 extension GraphDriveItem {
     func toUnifiedFile(source: FileSource) -> UnifiedFile {
         let driveId = parentReference?.driveId ?? ""
@@ -299,8 +293,8 @@ extension GraphDriveItem {
             mimeType: mimeType ?? remoteItem?.file?.mimeType,
             size: size ?? remoteItem?.size ?? 0,
             isFolder: isFolder || remoteItem?.folder != nil,
-            modifiedAt: parseDate(lastModifiedDateTime) ?? .now,
-            createdAt: parseDate(createdDateTime) ?? .now,
+            modifiedAt: lastModifiedDateTime.flatMap(Date.init(graphTimestamp:)) ?? .now,
+            createdAt: createdDateTime.flatMap(Date.init(graphTimestamp:)) ?? .now,
             modifiedBy: lastModifiedBy?.user?.displayName,
             webURL: webUrl ?? remoteItem?.webUrl ?? "",
             parentPath: parentReference?.path ?? "",
@@ -310,11 +304,6 @@ extension GraphDriveItem {
             largeThumbnailURL: thumbnails?.first?.large?.url,
             webDavURL: webDavUrl ?? remoteItem?.webDavUrl
         )
-    }
-
-    private func parseDate(_ string: String?) -> Date? {
-        guard let string else { return nil }
-        return iso8601Formatter.date(from: string)
     }
 }
 

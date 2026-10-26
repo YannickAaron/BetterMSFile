@@ -198,8 +198,6 @@ extension SearchHit {
             source = .oneDrive
         }
 
-        let formatter = ISO8601DateFormatter()
-
         return UnifiedFile(
             itemId: id,
             driveId: driveId,
@@ -207,8 +205,8 @@ extension SearchHit {
             mimeType: resource.file?.mimeType,
             size: resource.size ?? 0,
             isFolder: resource.folder != nil,
-            modifiedAt: resource.lastModifiedDateTime.flatMap { formatter.date(from: $0) } ?? .now,
-            createdAt: resource.createdDateTime.flatMap { formatter.date(from: $0) } ?? .now,
+            modifiedAt: resource.lastModifiedDateTime.flatMap(Date.init(graphTimestamp:)) ?? .now,
+            createdAt: resource.createdDateTime.flatMap(Date.init(graphTimestamp:)) ?? .now,
             modifiedBy: resource.lastModifiedBy?.user?.displayName,
             webURL: resource.webUrl ?? "",
             parentPath: "",
